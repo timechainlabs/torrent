@@ -193,7 +193,7 @@ func benchmarkStream(t *testing.B, crypto CryptoMethod) {
 		go func() {
 			defer ac.Close()
 			defer wg.Done()
-			rw, _, err := InitiateHandshake(ac, []byte("cats"), ia, crypto)
+			rw, _, err := InitiateHandshake(ac, padBytesToHash([]byte("cats")), ia, crypto)
 			require.NoError(t, err)
 			require.NoError(t, readAndWrite(rw, ar, a))
 		}()
