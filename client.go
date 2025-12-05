@@ -91,8 +91,7 @@ type Client struct {
 	// All Torrents once.
 	torrents map[*Torrent]struct{}
 	// All Torrents by their short infohashes (v1 if valid, and truncated v2 if valid). Unless the
-	// info has been obtained, there's no knowing if an infohash belongs to v1 or v2. TODO: Make
-	// this a weak pointer.
+	// info has been obtained, there's no knowing if an infohash belongs to v1 or v2.
 	torrentsByShortHash syncMapTorrentsByShortHash
 
 	// Piece request orderings grouped by storage. Value is value type because all fields are
@@ -692,9 +691,16 @@ func (cl *Client) incomingConnection(nc net.Conn) {
 	cl.unlock()
 }
 
-// Returns a handle to the given torrent, if it's present in the client.
-func (cl *Client) Torrent(ih metainfo.Hash) (t *Torrent, ok bool) {
-	return cl.torrentsByShortHash.Get(ih)
+// Returns a handle to the given torrent, if it's open in the client.
+func (cl *Client) Torrent(ih metainfo.Hash) (_ *Torrent, _ bool) {
+	t, ok := cl.torrentsByShortHash.Get(ih)
+	if !ok {
+		return
+	}
+	if t.closed.IsSet() {
+		return
+	}
+	return t, true
 }
 
 type DialResult struct {
@@ -1626,8 +1632,10 @@ func (cl *Client) WaitAll() bool {
 	return true
 }
 
-// Returns handles to all the torrents loaded in the Client.
+// Returns handles to all open Torrents in the Client.
 func (cl *Client) Torrents() []*Torrent {
+	// Won't use torrentsByShortHash here as the overhead of deduplicating *Torrent and wrangling
+	// the weak and unique pointers and filtering for Dropped is probably more than we want.
 	cl.rLock()
 	defer cl.rUnlock()
 	return cl.torrentsAsSlice()
