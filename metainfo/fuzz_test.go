@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/anacrolix/torrent/bencode"
+	"github.com/timechainlabs/torrent/bencode"
 )
 
 func Fuzz(f *testing.F) {

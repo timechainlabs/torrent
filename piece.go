@@ -13,11 +13,11 @@ import (
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/missinggo/v2/panicif"
 
-	"github.com/anacrolix/torrent/merkle"
-	"github.com/anacrolix/torrent/metainfo"
-	pp "github.com/anacrolix/torrent/peer_protocol"
-	"github.com/anacrolix/torrent/segments"
-	"github.com/anacrolix/torrent/storage"
+	"github.com/timechainlabs/torrent/merkle"
+	"github.com/timechainlabs/torrent/metainfo"
+	pp "github.com/timechainlabs/torrent/peer_protocol"
+	"github.com/timechainlabs/torrent/segments"
+	"github.com/timechainlabs/torrent/storage"
 )
 
 // Why is it an int64?

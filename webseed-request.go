@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"sync/atomic"
 
-	"github.com/anacrolix/torrent/webseed"
+	"github.com/timechainlabs/torrent/webseed"
 )
 
 // A wrapper around webseed.Request with extra state for webseedPeer.

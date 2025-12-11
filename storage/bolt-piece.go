@@ -9,7 +9,7 @@ import (
 
 	"go.etcd.io/bbolt"
 
-	"github.com/anacrolix/torrent/metainfo"
+	"github.com/timechainlabs/torrent/metainfo"
 )
 
 type boltPiece struct {

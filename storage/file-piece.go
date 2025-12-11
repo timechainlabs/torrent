@@ -13,8 +13,8 @@ import (
 	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/missinggo/v2/panicif"
 
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/segments"
+	"github.com/timechainlabs/torrent/metainfo"
+	"github.com/timechainlabs/torrent/segments"
 )
 
 // Piece within File storage. This is created on demand.

@@ -52,7 +52,7 @@ jobs:
           go mod init dummy
 
           # This should succeed if your module is properly published
-          go install github.com/anacrolix/torrent/cmd/torrent@${{ github.ref_name }}
+          go install github.com/timechainlabs/torrent/cmd/torrent@${{ github.ref_name }}
 
           # Verify it runs
           $(go env GOPATH)/bin/torrent version

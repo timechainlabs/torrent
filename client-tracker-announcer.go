@@ -14,11 +14,11 @@ import (
 	g "github.com/anacrolix/generics"
 	analog "github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2/panicif"
-	"github.com/anacrolix/torrent/internal/extracmp"
-	"github.com/anacrolix/torrent/internal/indexed"
-	"github.com/anacrolix/torrent/internal/mytimer"
-	"github.com/anacrolix/torrent/tracker"
-	trHttp "github.com/anacrolix/torrent/tracker/http"
+	"github.com/timechainlabs/torrent/internal/extracmp"
+	"github.com/timechainlabs/torrent/internal/indexed"
+	"github.com/timechainlabs/torrent/internal/mytimer"
+	"github.com/timechainlabs/torrent/tracker"
+	trHttp "github.com/timechainlabs/torrent/tracker/http"
 )
 
 // Designed in a way to allow switching to an event model if required. If multiple slots are allowed

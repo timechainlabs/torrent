@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anacrolix/torrent/bencode"
+	"github.com/timechainlabs/torrent/bencode"
 )
 
 func testFile(t *testing.T, filename string) {
@@ -147,7 +147,7 @@ func TestMetainfoWithStringURLList(t *testing.T) {
 		}, "&")))
 }
 
-// https://github.com/anacrolix/torrent/issues/247
+// https://github.com/timechainlabs/torrent/issues/247
 //
 // The decoder buffer wasn't cleared before starting the next dict item after
 // a syntax error on a field with the ignore_unmarshal_type_error tag.
@@ -156,7 +156,7 @@ func TestStringCreationDate(t *testing.T) {
 	assert.NoError(t, bencode.Unmarshal([]byte("d13:creation date23:29.03.2018 22:18:14 UTC4:infodee"), &mi))
 }
 
-// See https://github.com/anacrolix/torrent/issues/843.
+// See https://github.com/timechainlabs/torrent/issues/843.
 func TestUnmarshalEmptyStringNodes(t *testing.T) {
 	var mi MetaInfo
 	err := bencode.Unmarshal([]byte("d5:nodes0:e"), &mi)

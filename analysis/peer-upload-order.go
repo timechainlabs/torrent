@@ -7,8 +7,8 @@ import (
 
 	"github.com/elliotchance/orderedmap"
 
-	"github.com/anacrolix/torrent"
-	pp "github.com/anacrolix/torrent/peer_protocol"
+	"github.com/timechainlabs/torrent"
+	pp "github.com/timechainlabs/torrent/peer_protocol"
 )
 
 type peerData struct {
@@ -64,8 +64,8 @@ func (me *PeerUploadOrder) report(desc string, req torrent.Request, peer *torren
 
 func (me *PeerUploadOrder) onReceivedRequested(event torrent.PeerMessageEvent) {
 	req := torrent.Request{
-		event.Message.Index,
-		torrent.ChunkSpec{
+		Index: event.Message.Index,
+		ChunkSpec: torrent.ChunkSpec{
 			Begin:  event.Message.Begin,
 			Length: pp.Integer(len(event.Message.Piece)),
 		},

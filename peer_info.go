@@ -3,7 +3,7 @@ package torrent
 import (
 	"github.com/anacrolix/dht/v2/krpc"
 
-	"github.com/anacrolix/torrent/peer_protocol"
+	"github.com/timechainlabs/torrent/peer_protocol"
 )
 
 // Peer connection info, handed about publicly.

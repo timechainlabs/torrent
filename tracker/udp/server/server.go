@@ -18,8 +18,8 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
-	trackerServer "github.com/anacrolix/torrent/tracker/server"
-	"github.com/anacrolix/torrent/tracker/udp"
+	trackerServer "github.com/timechainlabs/torrent/tracker/server"
+	"github.com/timechainlabs/torrent/tracker/udp"
 )
 
 type ConnectionTrackerAddr = string

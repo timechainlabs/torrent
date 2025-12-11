@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/torrent/internal/testutil"
+	"github.com/timechainlabs/torrent"
+	"github.com/timechainlabs/torrent/internal/testutil"
 	qt "github.com/go-quicktest/qt"
 )
 

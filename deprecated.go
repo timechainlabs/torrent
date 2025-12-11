@@ -1,7 +1,7 @@
 package torrent
 
 import (
-	"github.com/anacrolix/torrent/webseed"
+	"github.com/timechainlabs/torrent/webseed"
 )
 
 // Deprecated: The names doesn't reflect the actual behaviour. You can only add sources. Use

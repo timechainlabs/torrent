@@ -27,14 +27,14 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/anacrolix/torrent/bencode"
-	requestStrategy "github.com/anacrolix/torrent/internal/request-strategy"
+	"github.com/timechainlabs/torrent/bencode"
+	requestStrategy "github.com/timechainlabs/torrent/internal/request-strategy"
 
-	"github.com/anacrolix/torrent/merkle"
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/mse"
-	pp "github.com/anacrolix/torrent/peer_protocol"
-	utHolepunch "github.com/anacrolix/torrent/peer_protocol/ut-holepunch"
+	"github.com/timechainlabs/torrent/merkle"
+	"github.com/timechainlabs/torrent/metainfo"
+	"github.com/timechainlabs/torrent/mse"
+	pp "github.com/timechainlabs/torrent/peer_protocol"
+	utHolepunch "github.com/timechainlabs/torrent/peer_protocol/ut-holepunch"
 )
 
 type PeerStatus struct {
@@ -123,6 +123,8 @@ type PeerConn struct {
 	// Set true after we've added our ConnStats generated during handshake to other ConnStat
 	// instances as determined when the *Torrent became known.
 	reconciledHandshakeStats bool
+
+	dataLeft uint64
 }
 
 func (*PeerConn) allConnStatsImplField(stats *AllConnStats) *ConnStats {
@@ -768,7 +770,7 @@ func (c *PeerConn) servePeerRequest(r Request) {
 	if !c.waitForDataAlloc(r.Length.Int()) {
 		// Might have been removed while unlocked.
 		if MapContains(c.unreadPeerRequests, r) {
-			c.useBestReject(r)
+			c.UseBestReject(r)
 		}
 		return
 	}
@@ -796,9 +798,9 @@ func (c *PeerConn) peerRequestDataReadFailed(err error, r Request) {
 	logLevel := log.Warning
 	if c.t.hasStorageCap() || c.t.closed.IsSet() {
 		// It's expected that pieces might drop. See
-		// https://github.com/anacrolix/torrent/issues/702#issuecomment-1000953313. Also the torrent
+		// https://github.com/timechainlabs/torrent/issues/702#issuecomment-1000953313. Also the torrent
 		// may have been Dropped, and the user expects to own the files, see
-		// https://github.com/anacrolix/torrent/issues/980.
+		// https://github.com/timechainlabs/torrent/issues/980.
 		logLevel = log.Debug
 	}
 	c.logger.Levelf(logLevel, "error reading chunk for peer Request %v: %v", r, err)
@@ -818,13 +820,15 @@ func (c *PeerConn) peerRequestDataReadFailed(err error, r Request) {
 	// we reconnect. TODO: Instead, we could just try to update them with Bitfield or HaveNone and
 	// if they kick us for breaking protocol, on reconnect we will be compliant again (at least
 	// initially).
-	c.useBestReject(r)
+	c.UseBestReject(r)
 }
 
 // Reject a peer request using the best protocol support we have available.
-func (c *PeerConn) useBestReject(r Request) {
+func (c *PeerConn) UseBestReject(r Request) bool {
 	if c.fastEnabled() {
 		c.reject(r)
+
+		return true
 	} else {
 		if c.choking {
 			// If fast isn't enabled, I think we would have wiped all peer requests when we last
@@ -834,6 +838,13 @@ func (c *PeerConn) useBestReject(r Request) {
 		}
 		// Choking a non-fast peer should cause them to flush all their requests.
 		c.choke(c.write)
+		return false
+	}
+}
+
+func (c *PeerConn) Accept() {
+	if c.choking {
+		c.unchoke(c.write)
 	}
 }
 
@@ -969,6 +980,11 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.Request:
 			r := newRequestFromMessage(&msg)
+			if c.cl.config.Callbacks.PieceRequestGateway != nil {
+				if c.cl.config.Callbacks.PieceRequestGateway(c, r) {
+					return
+				}
+			}
 			err = c.onReadRequest(r, true)
 			if err != nil {
 				err = fmt.Errorf("on reading request %v: %w", r, err)
@@ -1363,16 +1379,13 @@ func (c *PeerConn) addBuiltinLtepProtocols(pex bool) {
 	c.LocalLtepProtocolMap = &c.t.cl.defaultLocalLtepProtocolMap
 }
 
-func (pc *PeerConn) WriteExtendedMessage(extName pp.ExtensionName, payload []byte) error {
+func (pc *PeerConn) WriteExtendedMessage(extId uint32, payload []byte) error {
 	pc.locker().Lock()
 	defer pc.locker().Unlock()
-	id := pc.PeerExtensionIDs[extName]
-	if id == 0 {
-		return fmt.Errorf("peer does not support or has disabled extension %q", extName)
-	}
+
 	pc.write(pp.Message{
 		Type:            pp.Extended,
-		ExtendedID:      id,
+		ExtendedID:      pp.ExtensionNumber(extId),
 		ExtendedPayload: payload,
 	})
 	return nil

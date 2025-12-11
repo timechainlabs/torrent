@@ -7,7 +7,7 @@ import (
 	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/missinggo/v2/panicif"
 
-	"github.com/anacrolix/torrent/metainfo"
+	"github.com/timechainlabs/torrent/metainfo"
 )
 
 type Btree interface {

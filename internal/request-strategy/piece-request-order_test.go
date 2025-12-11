@@ -4,7 +4,7 @@ import (
 	"testing"
 	"unique"
 
-	"github.com/anacrolix/torrent/metainfo"
+	"github.com/timechainlabs/torrent/metainfo"
 	"github.com/bradfitz/iter"
 )
 

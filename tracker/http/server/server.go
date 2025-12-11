@@ -12,10 +12,10 @@ import (
 	"github.com/anacrolix/generics"
 	"github.com/anacrolix/log"
 
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/tracker"
-	httpTracker "github.com/anacrolix/torrent/tracker/http"
-	trackerServer "github.com/anacrolix/torrent/tracker/server"
+	"github.com/timechainlabs/torrent/bencode"
+	"github.com/timechainlabs/torrent/tracker"
+	httpTracker "github.com/timechainlabs/torrent/tracker/http"
+	trackerServer "github.com/timechainlabs/torrent/tracker/server"
 )
 
 type Handler struct {

@@ -3,7 +3,7 @@ package torrent
 import (
 	"io"
 
-	pp "github.com/anacrolix/torrent/peer_protocol"
+	pp "github.com/timechainlabs/torrent/peer_protocol"
 )
 
 // Various connection-level metrics. At the Torrent level these are aggregates. Chunks are messages
@@ -11,7 +11,7 @@ import (
 // needed locally. Intended is something we were expecting (I think such as when we cancel a request
 // but it arrives anyway). Written is things sent to the peer, and Read is stuff received from them.
 // Due to the implementation of Count, must be aligned on some platforms: See
-// https://github.com/anacrolix/torrent/issues/262.
+// https://github.com/timechainlabs/torrent/issues/262.
 type ConnStats struct {
 	// Total bytes on the wire. Includes handshakes and encryption.
 	BytesWritten     Count

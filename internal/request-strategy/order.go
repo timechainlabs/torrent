@@ -5,8 +5,8 @@ import (
 
 	"github.com/anacrolix/multiless"
 
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/types"
+	"github.com/timechainlabs/torrent/metainfo"
+	"github.com/timechainlabs/torrent/types"
 )
 
 type (

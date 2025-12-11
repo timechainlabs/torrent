@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/anacrolix/sync"
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/segments"
+	"github.com/timechainlabs/torrent/metainfo"
+	"github.com/timechainlabs/torrent/segments"
 )
 
 // Returns the minimum file lengths required for the given extent to exist on disk. Returns false if

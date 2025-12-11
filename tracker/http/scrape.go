@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/tracker/udp"
-	"github.com/anacrolix/torrent/types/infohash"
+	"github.com/timechainlabs/torrent/bencode"
+	"github.com/timechainlabs/torrent/tracker/udp"
+	"github.com/timechainlabs/torrent/types/infohash"
 )
 
 type scrapeResponse struct {

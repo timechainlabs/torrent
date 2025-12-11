@@ -7,8 +7,8 @@ import (
 	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/missinggo/v2/bitmap"
 
-	"github.com/anacrolix/torrent/metainfo"
-	infohash_v2 "github.com/anacrolix/torrent/types/infohash-v2"
+	"github.com/timechainlabs/torrent/metainfo"
+	infohash_v2 "github.com/timechainlabs/torrent/types/infohash-v2"
 )
 
 // Provides access to regions of torrent data that correspond to its files.

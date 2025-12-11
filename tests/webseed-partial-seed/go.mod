@@ -1,9 +1,9 @@
-module github.com/anacrolix/torrent/tests/webseed-partial-seed
+module github.com/timechainlabs/torrent/tests/webseed-partial-seed
 
 go 1.23
 
 require (
-	github.com/anacrolix/torrent v1.56.1
+	github.com/timechainlabs/torrent v1.56.1
 	github.com/go-quicktest/qt v1.101.0
 )
 

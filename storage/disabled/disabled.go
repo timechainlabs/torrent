@@ -3,8 +3,8 @@ package disabled
 import (
 	"errors"
 
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/storage"
+	"github.com/timechainlabs/torrent/metainfo"
+	"github.com/timechainlabs/torrent/storage"
 )
 
 type Client struct{}

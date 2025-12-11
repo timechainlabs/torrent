@@ -15,10 +15,10 @@ import (
 
 	"github.com/anacrolix/missinggo/httptoo"
 
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/tracker/shared"
-	"github.com/anacrolix/torrent/tracker/udp"
-	"github.com/anacrolix/torrent/version"
+	"github.com/timechainlabs/torrent/bencode"
+	"github.com/timechainlabs/torrent/tracker/shared"
+	"github.com/timechainlabs/torrent/tracker/udp"
+	"github.com/timechainlabs/torrent/version"
 )
 
 var vars = expvar.NewMap("tracker/http")
@@ -64,7 +64,7 @@ func setAnnounceParams(_url *url.URL, ar *AnnounceRequest, opts AnnounceOpt) {
 	doIp("ipv4", opts.ClientIp4)
 	doIp("ipv6", opts.ClientIp6)
 	// We're operating purely on query-escaped strings, where + would have already been encoded to
-	// %2B, and + has no other special meaning. See https://github.com/anacrolix/torrent/issues/534.
+	// %2B, and + has no other special meaning. See https://github.com/timechainlabs/torrent/issues/534.
 	qstr := strings.ReplaceAll(q.Encode(), "+", "%20")
 
 	// Some private trackers require the original query param to be in the first position.

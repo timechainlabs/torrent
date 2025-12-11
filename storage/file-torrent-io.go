@@ -7,7 +7,7 @@ import (
 
 	"github.com/anacrolix/missinggo/v2/panicif"
 
-	"github.com/anacrolix/torrent/segments"
+	"github.com/timechainlabs/torrent/segments"
 )
 
 // Exposes file-based storage of a torrent, as one big ReadWriterAt.

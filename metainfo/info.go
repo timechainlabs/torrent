@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/anacrolix/torrent/segments"
+	"github.com/timechainlabs/torrent/segments"
 )
 
 // The info dictionary. See BEP 3 and BEP 52.

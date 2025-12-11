@@ -7,8 +7,8 @@ import (
 
 	"github.com/anacrolix/log"
 
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/types/infohash"
+	"github.com/timechainlabs/torrent/metainfo"
+	"github.com/timechainlabs/torrent/types/infohash"
 )
 
 type PieceCompletionGetSetter interface {

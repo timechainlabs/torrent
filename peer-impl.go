@@ -5,8 +5,8 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 
-	"github.com/anacrolix/torrent/metainfo"
-	pp "github.com/anacrolix/torrent/peer_protocol"
+	"github.com/timechainlabs/torrent/metainfo"
+	pp "github.com/timechainlabs/torrent/peer_protocol"
 )
 
 // Contains implementation details that differ between peer types, like WebSeeds and regular

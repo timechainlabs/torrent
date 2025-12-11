@@ -19,12 +19,12 @@ import (
 	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/generics/heap"
 	"github.com/anacrolix/missinggo/v2/panicif"
-	"github.com/anacrolix/torrent/internal/extracmp"
+	"github.com/timechainlabs/torrent/internal/extracmp"
 	"github.com/davecgh/go-spew/spew"
 
-	"github.com/anacrolix/torrent/internal/request-strategy"
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/webseed"
+	"github.com/timechainlabs/torrent/internal/request-strategy"
+	"github.com/timechainlabs/torrent/metainfo"
+	"github.com/timechainlabs/torrent/webseed"
 )
 
 // Default is based on experience with CloudFlare.

@@ -34,24 +34,24 @@ import (
 	"github.com/anacrolix/missinggo/v2/panicif"
 	"github.com/anacrolix/missinggo/v2/pproffd"
 	"github.com/anacrolix/sync"
-	"github.com/anacrolix/torrent/internal/extracmp"
-	"github.com/anacrolix/torrent/tracker"
-	"github.com/anacrolix/torrent/webtorrent"
 	"github.com/cespare/xxhash"
 	"github.com/dustin/go-humanize"
 	gbtree "github.com/google/btree"
 	"github.com/pion/webrtc/v4"
+	"github.com/timechainlabs/torrent/internal/extracmp"
+	"github.com/timechainlabs/torrent/tracker"
+	"github.com/timechainlabs/torrent/webtorrent"
 
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/internal/check"
-	"github.com/anacrolix/torrent/internal/limiter"
-	"github.com/anacrolix/torrent/iplist"
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/mse"
-	pp "github.com/anacrolix/torrent/peer_protocol"
-	"github.com/anacrolix/torrent/storage"
-	"github.com/anacrolix/torrent/types/infohash"
-	infohash_v2 "github.com/anacrolix/torrent/types/infohash-v2"
+	"github.com/timechainlabs/torrent/bencode"
+	"github.com/timechainlabs/torrent/internal/check"
+	"github.com/timechainlabs/torrent/internal/limiter"
+	"github.com/timechainlabs/torrent/iplist"
+	"github.com/timechainlabs/torrent/metainfo"
+	"github.com/timechainlabs/torrent/mse"
+	pp "github.com/timechainlabs/torrent/peer_protocol"
+	"github.com/timechainlabs/torrent/storage"
+	"github.com/timechainlabs/torrent/types/infohash"
+	infohash_v2 "github.com/timechainlabs/torrent/types/infohash-v2"
 )
 
 const webseedRequestUpdateTimerInterval = 5 * time.Second
@@ -363,8 +363,7 @@ func (cl *Client) init(cfg *ClientConfig) {
 // Client.
 func NewClient(cfg *ClientConfig) (cl *Client, err error) {
 	if cfg == nil {
-		cfg = NewDefaultClientConfig()
-		cfg.ListenPort = 0
+		return nil, errors.New("config must be provided")
 	}
 	cl = &Client{}
 	cl.init(cfg)
@@ -496,9 +495,7 @@ func (cl *Client) listenNetworks() (ns []network) {
 func (cl *Client) NewAnacrolixDhtServer(conn net.PacketConn) (s *dht.Server, err error) {
 	logger := cl.logger.WithNames("dht", conn.LocalAddr().String())
 	cfg := dht.ServerConfig{
-		IPBlocklist:    cl.ipBlockList,
-		Conn:           conn,
-		OnAnnouncePeer: cl.onDHTAnnouncePeer,
+		Conn: conn,
 		PublicIP: func() net.IP {
 			if connIsIpv6(conn) && cl.config.PublicIp6 != nil {
 				return cl.config.PublicIp6

@@ -1,8 +1,8 @@
 package torrent
 
 import (
-	"github.com/anacrolix/torrent/mse"
-	pp "github.com/anacrolix/torrent/peer_protocol"
+	"github.com/timechainlabs/torrent/mse"
+	pp "github.com/timechainlabs/torrent/peer_protocol"
 )
 
 // These are called synchronously, and do not pass ownership of arguments (do not expect to retain
@@ -37,7 +37,8 @@ type Callbacks struct {
 
 	// Sends status event updates. Useful to inform the user of specific events as they happen,
 	// for logging or to action on.
-	StatusUpdated []func(StatusUpdatedEvent)
+	StatusUpdated       []func(StatusUpdatedEvent)
+	PieceRequestGateway func(*PeerConn, Request) bool
 }
 
 type ReceivedUsefulDataEvent = PeerMessageEvent

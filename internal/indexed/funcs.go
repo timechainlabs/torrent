@@ -5,7 +5,7 @@ import (
 	"iter"
 
 	g "github.com/anacrolix/generics"
-	"github.com/anacrolix/torrent/internal/amortize"
+	"github.com/timechainlabs/torrent/internal/amortize"
 	"github.com/google/go-cmp/cmp"
 )
 

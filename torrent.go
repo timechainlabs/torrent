@@ -43,23 +43,23 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/internal/check"
-	"github.com/anacrolix/torrent/internal/nestedmaps"
-	request_strategy "github.com/anacrolix/torrent/internal/request-strategy"
-	"github.com/anacrolix/torrent/merkle"
-	"github.com/anacrolix/torrent/metainfo"
-	pp "github.com/anacrolix/torrent/peer_protocol"
-	utHolepunch "github.com/anacrolix/torrent/peer_protocol/ut-holepunch"
-	"github.com/anacrolix/torrent/segments"
+	"github.com/timechainlabs/torrent/bencode"
+	"github.com/timechainlabs/torrent/internal/check"
+	"github.com/timechainlabs/torrent/internal/nestedmaps"
+	request_strategy "github.com/timechainlabs/torrent/internal/request-strategy"
+	"github.com/timechainlabs/torrent/merkle"
+	"github.com/timechainlabs/torrent/metainfo"
+	pp "github.com/timechainlabs/torrent/peer_protocol"
+	utHolepunch "github.com/timechainlabs/torrent/peer_protocol/ut-holepunch"
+	"github.com/timechainlabs/torrent/segments"
 
-	"github.com/anacrolix/torrent/storage"
-	"github.com/anacrolix/torrent/tracker"
-	typedRoaring "github.com/anacrolix/torrent/typed-roaring"
-	"github.com/anacrolix/torrent/types/infohash"
-	infohash_v2 "github.com/anacrolix/torrent/types/infohash-v2"
-	"github.com/anacrolix/torrent/webseed"
-	"github.com/anacrolix/torrent/webtorrent"
+	"github.com/timechainlabs/torrent/storage"
+	"github.com/timechainlabs/torrent/tracker"
+	typedRoaring "github.com/timechainlabs/torrent/typed-roaring"
+	"github.com/timechainlabs/torrent/types/infohash"
+	infohash_v2 "github.com/timechainlabs/torrent/types/infohash-v2"
+	"github.com/timechainlabs/torrent/webseed"
+	"github.com/timechainlabs/torrent/webtorrent"
 )
 
 var errTorrentClosed = errors.New("torrent closed")
@@ -321,7 +321,7 @@ func (t *Torrent) KnownSwarm() (ks []PeerInfo) {
 			// > what's appropriate. We can carry forward the SupportsEncryption value as we
 			// > received it from trackers/DHT/PEX, or just use the encryption state for the
 			// > connection. It's probably easiest to do the latter for now.
-			// https://github.com/anacrolix/torrent/pull/188
+			// https://github.com/timechainlabs/torrent/pull/188
 			SupportsEncryption: conn.headerEncrypted,
 		})
 	}
@@ -1020,7 +1020,7 @@ func (t *Torrent) newMetaInfo() metainfo.MetaInfo {
 	return metainfo.MetaInfo{
 		CreationDate: time.Now().Unix(),
 		Comment:      "dynamic metainfo from client",
-		CreatedBy:    "https://github.com/anacrolix/torrent",
+		CreatedBy:    "https://github.com/timechainlabs/torrent",
 		AnnounceList: t.announceList.Clone(),
 		InfoBytes: func() []byte {
 			if t.haveInfo() {
@@ -1043,7 +1043,7 @@ func (t *Torrent) newMetaInfo() metainfo.MetaInfo {
 // Returns a count of bytes that are not complete in storage, and not pending being written to
 // storage. This value is from the perspective of the download manager, and may not agree with the
 // actual state in storage. If you want read data synchronously you should use a Reader. See
-// https://github.com/anacrolix/torrent/issues/828.
+// https://github.com/timechainlabs/torrent/issues/828.
 func (t *Torrent) BytesMissing() (n int64) {
 	t.cl.rLock()
 	n = t.bytesMissingLocked()
@@ -2252,7 +2252,7 @@ func (t *Torrent) announceRequest(
 		NumWant: func() int32 {
 			if t.wantPeers() && len(t.cl.dialers) > 0 {
 				// Windozer has UDP packet limit. See:
-				// https://github.com/anacrolix/torrent/issues/764
+				// https://github.com/timechainlabs/torrent/issues/764
 				return 200
 			} else {
 				return 0
@@ -2362,7 +2362,7 @@ func (t *Torrent) timeboxedAnnounceToDht(s DhtServer) error {
 	select {
 	case <-t.closed.Done():
 		// Arbitrary, but reported in
-		// https://github.com/anacrolix/torrent/issues/1005#issuecomment-2856881633. Should able to
+		// https://github.com/timechainlabs/torrent/issues/1005#issuecomment-2856881633. Should able to
 		// remove timeboxing entirely at some point.
 	case <-time.After(15 * time.Minute):
 	}
@@ -2402,7 +2402,7 @@ func (t *Torrent) dhtAnnouncer(s DhtServer) {
 				t.logger.WithDefaultLevel(log.Warning).Printf("error announcing %q to DHT: %s", t, err)
 				// Assume DNS issues. This is hacky, but DHT announcing needs be overhauled and
 				// managed at a client level without unnecessary goroutines, just like with regular
-				// trackers. Works around https://github.com/anacrolix/torrent/issues/1029.
+				// trackers. Works around https://github.com/timechainlabs/torrent/issues/1029.
 				time.Sleep(5 * time.Minute)
 			}
 		}()
@@ -2419,7 +2419,7 @@ func (t *Torrent) addPeers(peers []PeerInfo) (added int) {
 }
 
 // The returned TorrentStats may require alignment in memory. See
-// https://github.com/anacrolix/torrent/issues/383.
+// https://github.com/timechainlabs/torrent/issues/383.
 func (t *Torrent) Stats() TorrentStats {
 	t.cl.rLock()
 	defer t.cl.rUnlock()
@@ -2671,7 +2671,7 @@ func (t *Torrent) pieceHashed(piece pieceIndex, passed bool, hashIoErr error) {
 					// Turns out it's still useful to ban peers like this because if there's only a
 					// single peer for a piece, and we never progress that piece to completion, we
 					// will never smart-ban them. Discovered in
-					// https://github.com/anacrolix/torrent/issues/715.
+					// https://github.com/timechainlabs/torrent/issues/715.
 					t.slogger().Info(
 						"piece failed hash. banning peer",
 						"piece", piece,

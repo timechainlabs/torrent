@@ -5,7 +5,7 @@ import (
 
 	g "github.com/anacrolix/generics"
 
-	infohash_v2 "github.com/anacrolix/torrent/types/infohash-v2"
+	infohash_v2 "github.com/timechainlabs/torrent/types/infohash-v2"
 )
 
 // Information specific to a single file inside the MetaInfo structure.
@@ -15,7 +15,7 @@ type FileInfo struct {
 	Length int64    `bencode:"length"`
 	Path   []string `bencode:"path"` // BEP3
 	// Unofficial extension by BiglyBT? https://github.com/BiglySoftware/BiglyBT/issues/1274. Might
-	// be a safer bet when available: https://github.com/anacrolix/torrent/pull/915.
+	// be a safer bet when available: https://github.com/timechainlabs/torrent/pull/915.
 	PathUtf8 []string `bencode:"path.utf-8,omitempty" json:"path.utf-8,omitempty"`
 
 	ExtendedFileAttrs `json:",omitempty"`

@@ -3,9 +3,9 @@ package torrent
 import (
 	"github.com/anacrolix/missinggo/v2/panicif"
 
-	requestStrategy "github.com/anacrolix/torrent/internal/request-strategy"
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/anacrolix/torrent/storage"
+	requestStrategy "github.com/timechainlabs/torrent/internal/request-strategy"
+	"github.com/timechainlabs/torrent/metainfo"
+	"github.com/timechainlabs/torrent/storage"
 )
 
 type requestStrategyInputCommon struct {

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/anacrolix/missinggo/v2/panicif"
-	"github.com/anacrolix/torrent/internal/extracmp"
+	"github.com/timechainlabs/torrent/internal/extracmp"
 	"github.com/go-quicktest/qt"
 	"golang.org/x/exp/constraints"
 )

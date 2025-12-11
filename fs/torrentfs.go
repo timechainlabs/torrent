@@ -12,8 +12,8 @@ import (
 	"github.com/anacrolix/fuse"
 	fusefs "github.com/anacrolix/fuse/fs"
 
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/torrent/metainfo"
+	"github.com/timechainlabs/torrent"
+	"github.com/timechainlabs/torrent/metainfo"
 )
 
 const (

@@ -3,7 +3,7 @@ package torrent
 import (
 	"crypto"
 
-	pp "github.com/anacrolix/torrent/peer_protocol"
+	pp "github.com/timechainlabs/torrent/peer_protocol"
 )
 
 const (

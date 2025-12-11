@@ -15,8 +15,8 @@ import (
 	"github.com/pion/webrtc/v4"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/anacrolix/torrent/tracker"
-	"github.com/anacrolix/torrent/types/infohash"
+	"github.com/timechainlabs/torrent/tracker"
+	"github.com/timechainlabs/torrent/types/infohash"
 )
 
 type TrackerClientStats struct {
