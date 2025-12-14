@@ -325,7 +325,7 @@ func (me *PeerConn) havePeerRequest(r Request) bool {
 	return MapContains(me.unreadPeerRequests, r) || MapContains(me.readyPeerRequests, r)
 }
 
-func (cn *PeerConn) choke(msg messageWriter) (more bool) {
+func (cn *PeerConn) choke(msg func(pp.Message) bool) (more bool) {
 	if cn.choking {
 		return true
 	}
@@ -770,7 +770,7 @@ func (c *PeerConn) servePeerRequest(r Request) {
 	if !c.waitForDataAlloc(r.Length.Int()) {
 		// Might have been removed while unlocked.
 		if MapContains(c.unreadPeerRequests, r) {
-			c.UseBestReject(r)
+			c.useBestReject(r)
 		}
 		return
 	}
@@ -820,15 +820,13 @@ func (c *PeerConn) peerRequestDataReadFailed(err error, r Request) {
 	// we reconnect. TODO: Instead, we could just try to update them with Bitfield or HaveNone and
 	// if they kick us for breaking protocol, on reconnect we will be compliant again (at least
 	// initially).
-	c.UseBestReject(r)
+	c.useBestReject(r)
 }
 
 // Reject a peer request using the best protocol support we have available.
-func (c *PeerConn) UseBestReject(r Request) bool {
+func (c *PeerConn) useBestReject(r Request) {
 	if c.fastEnabled() {
 		c.reject(r)
-
-		return true
 	} else {
 		if c.choking {
 			// If fast isn't enabled, I think we would have wiped all peer requests when we last
@@ -838,13 +836,6 @@ func (c *PeerConn) UseBestReject(r Request) bool {
 		}
 		// Choking a non-fast peer should cause them to flush all their requests.
 		c.choke(c.write)
-		return false
-	}
-}
-
-func (c *PeerConn) Accept() {
-	if c.choking {
-		c.unchoke(c.write)
 	}
 }
 
@@ -982,7 +973,8 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			r := newRequestFromMessage(&msg)
 			if c.cl.config.Callbacks.PieceRequestGateway != nil {
 				if c.cl.config.Callbacks.PieceRequestGateway(c, r) {
-					return
+					c.cancelAllRequests()
+					break
 				}
 			}
 			err = c.onReadRequest(r, true)
@@ -1380,9 +1372,6 @@ func (c *PeerConn) addBuiltinLtepProtocols(pex bool) {
 }
 
 func (pc *PeerConn) WriteExtendedMessage(extId uint32, payload []byte) error {
-	pc.locker().Lock()
-	defer pc.locker().Unlock()
-
 	pc.write(pp.Message{
 		Type:            pp.Extended,
 		ExtendedID:      pp.ExtensionNumber(extId),
