@@ -124,7 +124,7 @@ type PeerConn struct {
 	// instances as determined when the *Torrent became known.
 	reconciledHandshakeStats bool
 
-	dataLeft uint64
+	pendingPeerRequests chan Request
 }
 
 func (*PeerConn) allConnStatsImplField(stats *AllConnStats) *ConnStats {
@@ -970,10 +970,16 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		case pp.Bitfield:
 			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.Request:
+			println("Piece Request Again")
 			r := newRequestFromMessage(&msg)
-			if c.cl.config.Callbacks.PieceRequestGateway != nil {
-				if c.cl.config.Callbacks.PieceRequestGateway(c, r) {
-					c.cancelAllRequests()
+			if c.cl.config.Callbacks.ApproveOrNotPieceRequest != nil {
+				if !c.cl.config.Callbacks.ApproveOrNotPieceRequest(c, r) {
+					if c.pendingPeerRequests == nil {
+						c.pendingPeerRequests = make(chan Request, c.t.NumPieces())
+					}
+
+					c.pendingPeerRequests <- r
+
 					break
 				}
 			}
@@ -1039,6 +1045,14 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		if err != nil {
 			return err
 		}
+	}
+}
+
+func (c *PeerConn) ReleaseRequest() {
+	var request Request = <-c.pendingPeerRequests
+	err := c.onReadRequest(request, true)
+	if err != nil {
+		return
 	}
 }
 
@@ -1112,10 +1126,12 @@ func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err
 	if err != nil {
 		return
 	}
+
 	if !builtin {
 		// User should have taken care of this in PeerConnReadExtensionMessage callback.
 		return nil
 	}
+
 	switch extensionName {
 	case pp.ExtensionNameMetadata:
 		err := cl.gotMetadataExtensionMsg(payload, t, c)
@@ -1377,6 +1393,7 @@ func (pc *PeerConn) WriteExtendedMessage(extId uint32, payload []byte) error {
 		ExtendedID:      pp.ExtensionNumber(extId),
 		ExtendedPayload: payload,
 	})
+	println("writing extended message")
 	return nil
 }
 
