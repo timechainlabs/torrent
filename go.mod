@@ -1,6 +1,6 @@
 module github.com/timechainlabs/torrent
 
-go 1.25.4
+go 1.23.8
 
 require (
 	github.com/RoaringBitmap/roaring v1.9.4
