@@ -24,6 +24,7 @@ import (
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/missinggo/v2/panicif"
 	"github.com/anacrolix/multiless"
+	"github.com/anacrolix/sync"
 
 	"golang.org/x/time/rate"
 
@@ -41,6 +42,11 @@ type PeerStatus struct {
 	Id  PeerID
 	Ok  bool
 	Err string // see https://github.com/golang/go/issues/5161
+}
+
+type PeerState struct {
+	BytesLeft uint64
+	Mutex     sync.Mutex
 }
 
 // Maintains the state of a BitTorrent-protocol based connection with a peer.
@@ -1051,28 +1057,27 @@ func (c *PeerConn) mainReadLoop() (err error) {
 	}
 }
 
-func (c *PeerConn) ReleaseRequest(length uint64) {
-OUTER:
+func (c *PeerConn) ReleaseRequests(state *PeerState) {
 	for {
-		var request Request
-		select {
-		case request = <-c.pendingPeerRequests:
-			break
+		request, ok := <-c.pendingPeerRequests
+		if ok {
+			state.Mutex.Lock()
+			if request.Length.Uint64() <= state.BytesLeft {
+				err := c.onReadRequest(request, true)
+				if err != nil {
+					state.Mutex.Unlock()
+					return
+				}
 
-		case <-time.After(2 * time.Second):
-			break OUTER
-		}
-
-		if request.Length.Uint64() <= length {
-			err := c.onReadRequest(request, true)
-			if err != nil {
-				return
+				state.BytesLeft -= request.Length.Uint64()
+				state.Mutex.Unlock()
+			} else {
+				c.pendingPeerRequests <- request
+				state.Mutex.Unlock()
+				break
 			}
-
-			length -= request.Length.Uint64()
 		} else {
-			c.pendingPeerRequests <- request
-			break OUTER
+			break
 		}
 	}
 }
