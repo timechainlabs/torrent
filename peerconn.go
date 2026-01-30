@@ -870,6 +870,10 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		} else {
 			torrent.Add("connection.mainReadLoop returned with no error", 1)
 		}
+
+		if c.pendingPeerRequests != nil {
+			close(c.pendingPeerRequests)
+		}
 	}()
 	t := c.t
 	cl := t.cl
@@ -1048,8 +1052,17 @@ func (c *PeerConn) mainReadLoop() (err error) {
 }
 
 func (c *PeerConn) ReleaseRequest(length uint64) {
+OUTER:
 	for {
-		var request Request = <-c.pendingPeerRequests
+		var request Request
+		select {
+		case request = <-c.pendingPeerRequests:
+			break
+
+		case <-time.After(2 * time.Second):
+			break OUTER
+		}
+
 		if request.Length.Uint64() <= length {
 			err := c.onReadRequest(request, true)
 			if err != nil {
@@ -1059,7 +1072,7 @@ func (c *PeerConn) ReleaseRequest(length uint64) {
 			length -= request.Length.Uint64()
 		} else {
 			c.pendingPeerRequests <- request
-			break
+			break OUTER
 		}
 	}
 }
