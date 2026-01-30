@@ -970,7 +970,6 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		case pp.Bitfield:
 			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.Request:
-			println("Piece Request Again")
 			r := newRequestFromMessage(&msg)
 			if c.cl.config.Callbacks.ApproveOrNotPieceRequest != nil {
 				if !c.cl.config.Callbacks.ApproveOrNotPieceRequest(c, r) {
@@ -1048,11 +1047,20 @@ func (c *PeerConn) mainReadLoop() (err error) {
 	}
 }
 
-func (c *PeerConn) ReleaseRequest() {
-	var request Request = <-c.pendingPeerRequests
-	err := c.onReadRequest(request, true)
-	if err != nil {
-		return
+func (c *PeerConn) ReleaseRequest(length uint64) {
+	for {
+		var request Request = <-c.pendingPeerRequests
+		if request.Length.Uint64() <= length {
+			err := c.onReadRequest(request, true)
+			if err != nil {
+				return
+			}
+
+			length -= request.Length.Uint64()
+		} else {
+			c.pendingPeerRequests <- request
+			break
+		}
 	}
 }
 
@@ -1393,7 +1401,6 @@ func (pc *PeerConn) WriteExtendedMessage(extId uint32, payload []byte) error {
 		ExtendedID:      pp.ExtensionNumber(extId),
 		ExtendedPayload: payload,
 	})
-	println("writing extended message")
 	return nil
 }
 
