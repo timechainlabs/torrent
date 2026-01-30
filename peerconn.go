@@ -988,7 +988,6 @@ func (c *PeerConn) mainReadLoop() (err error) {
 					}
 
 					c.pendingPeerRequests <- r
-
 					break
 				}
 			}
@@ -1058,11 +1057,15 @@ func (c *PeerConn) mainReadLoop() (err error) {
 }
 
 func (c *PeerConn) ReleaseRequests(state *PeerState) {
+	if c.pendingPeerRequests == nil {
+		c.pendingPeerRequests = make(chan Request, c.t.NumPieces())
+	}
+
 	for {
 		request, ok := <-c.pendingPeerRequests
 		if ok {
 			state.Mutex.Lock()
-			if request.Length.Uint64() <= state.BytesLeft {
+			if state.BytesLeft >= request.Length.Uint64() {
 				err := c.onReadRequest(request, true)
 				if err != nil {
 					state.Mutex.Unlock()
@@ -1074,7 +1077,6 @@ func (c *PeerConn) ReleaseRequests(state *PeerState) {
 			} else {
 				c.pendingPeerRequests <- request
 				state.Mutex.Unlock()
-				break
 			}
 		} else {
 			break
