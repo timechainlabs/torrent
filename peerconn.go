@@ -994,10 +994,9 @@ func (c *PeerConn) mainReadLoop() (err error) {
 						}
 
 						go c.Releaser()
-					} else {
-						c.peerState.pendingRequests <- r
 					}
 
+					c.peerState.pendingRequests <- r
 					break
 				}
 			}
