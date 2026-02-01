@@ -889,6 +889,14 @@ func (c *PeerConn) mainReadLoop() (err error) {
 	t := c.t
 	cl := t.cl
 
+	if c.peerState == nil {
+		c.peerState = &PeerState{
+			pendingRequests: make(chan Request, c.t.NumPieces()),
+		}
+
+		go c.Releaser()
+	}
+
 	decoder := pp.Decoder{
 		R:         bufio.NewReaderSize(c.r, 1<<17),
 		MaxLength: 4 * pp.Integer(max(int64(t.chunkSize), defaultChunkSize)),
@@ -988,14 +996,6 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			r := newRequestFromMessage(&msg)
 			if c.cl.config.Callbacks.ApproveOrNotPieceRequest != nil {
 				if !c.cl.config.Callbacks.ApproveOrNotPieceRequest(c, r) {
-					if c.peerState == nil {
-						c.peerState = &PeerState{
-							pendingRequests: make(chan Request, c.t.NumPieces()),
-						}
-
-						go c.Releaser()
-					}
-
 					c.peerState.pendingRequests <- r
 					break
 				}
