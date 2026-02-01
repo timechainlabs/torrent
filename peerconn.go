@@ -45,8 +45,9 @@ type PeerStatus struct {
 }
 
 type PeerState struct {
-	BytesLeft uint64
-	Mutex     sync.Mutex
+	bytesLeft       uint64
+	mutex           sync.Mutex
+	pendingRequests chan Request
 }
 
 // Maintains the state of a BitTorrent-protocol based connection with a peer.
@@ -130,7 +131,11 @@ type PeerConn struct {
 	// instances as determined when the *Torrent became known.
 	reconciledHandshakeStats bool
 
-	pendingPeerRequests chan Request
+	peerState *PeerState
+}
+
+func (cn *PeerConn) GetPeerState() *PeerState {
+	return cn.peerState
 }
 
 func (*PeerConn) allConnStatsImplField(stats *AllConnStats) *ConnStats {
@@ -877,8 +882,8 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			torrent.Add("connection.mainReadLoop returned with no error", 1)
 		}
 
-		if c.pendingPeerRequests != nil {
-			close(c.pendingPeerRequests)
+		if c.peerState != nil && c.peerState.pendingRequests != nil {
+			close(c.peerState.pendingRequests)
 		}
 	}()
 	t := c.t
@@ -983,11 +988,16 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			r := newRequestFromMessage(&msg)
 			if c.cl.config.Callbacks.ApproveOrNotPieceRequest != nil {
 				if !c.cl.config.Callbacks.ApproveOrNotPieceRequest(c, r) {
-					if c.pendingPeerRequests == nil {
-						c.pendingPeerRequests = make(chan Request, c.t.NumPieces())
+					if c.peerState == nil {
+						c.peerState = &PeerState{
+							pendingRequests: make(chan Request, c.t.NumPieces()),
+						}
+
+						go c.Releaser()
+					} else {
+						c.peerState.pendingRequests <- r
 					}
 
-					c.pendingPeerRequests <- r
 					break
 				}
 			}
@@ -1056,27 +1066,24 @@ func (c *PeerConn) mainReadLoop() (err error) {
 	}
 }
 
-func (c *PeerConn) ReleaseRequests(state *PeerState) {
-	if c.pendingPeerRequests == nil {
-		c.pendingPeerRequests = make(chan Request, c.t.NumPieces())
-	}
-
+func (c *PeerConn) Releaser() {
 	for {
-		request, ok := <-c.pendingPeerRequests
+		request, ok := <-c.peerState.pendingRequests
 		if ok {
-			state.Mutex.Lock()
-			if state.BytesLeft >= request.Length.Uint64() {
+			c.peerState.mutex.Lock()
+			if c.peerState.bytesLeft >= request.Length.Uint64() {
 				err := c.onReadRequest(request, true)
 				if err != nil {
-					state.Mutex.Unlock()
+					c.peerState.mutex.Unlock()
 					return
 				}
 
-				state.BytesLeft -= request.Length.Uint64()
-				state.Mutex.Unlock()
+				c.peerState.bytesLeft -= request.Length.Uint64()
+				c.peerState.mutex.Unlock()
 			} else {
-				c.pendingPeerRequests <- request
-				state.Mutex.Unlock()
+				c.peerState.pendingRequests <- request
+				c.peerState.mutex.Unlock()
+				time.Sleep(time.Second)
 			}
 		} else {
 			break
