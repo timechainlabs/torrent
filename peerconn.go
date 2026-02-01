@@ -891,7 +891,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 
 	if c.peerState == nil {
 		c.peerState = &PeerState{
-			pendingRequests: make(chan Request, c.t.NumPieces()),
+			pendingRequests: make(chan Request, 65535),
 		}
 
 		go c.Releaser()
