@@ -45,8 +45,8 @@ type PeerStatus struct {
 }
 
 type PeerState struct {
-	bytesLeft       uint64
-	mutex           sync.Mutex
+	BytesLeft       uint64
+	Mutex           sync.Mutex
 	pendingRequests chan Request
 }
 
@@ -1070,19 +1070,19 @@ func (c *PeerConn) Releaser() {
 	for {
 		request, ok := <-c.peerState.pendingRequests
 		if ok {
-			c.peerState.mutex.Lock()
-			if c.peerState.bytesLeft >= request.Length.Uint64() {
+			c.peerState.Mutex.Lock()
+			if c.peerState.BytesLeft >= request.Length.Uint64() {
 				err := c.onReadRequest(request, true)
 				if err != nil {
-					c.peerState.mutex.Unlock()
+					c.peerState.Mutex.Unlock()
 					return
 				}
 
-				c.peerState.bytesLeft -= request.Length.Uint64()
-				c.peerState.mutex.Unlock()
+				c.peerState.BytesLeft -= request.Length.Uint64()
+				c.peerState.Mutex.Unlock()
 			} else {
 				c.peerState.pendingRequests <- request
-				c.peerState.mutex.Unlock()
+				c.peerState.Mutex.Unlock()
 				time.Sleep(time.Second)
 			}
 		} else {
