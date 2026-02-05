@@ -119,6 +119,8 @@ type Client struct {
 	clientWebseedState
 
 	activePieceHashers int
+
+	GoThroughReleaser bool
 }
 
 type clientWebseedState struct {

@@ -37,8 +37,7 @@ type Callbacks struct {
 
 	// Sends status event updates. Useful to inform the user of specific events as they happen,
 	// for logging or to action on.
-	StatusUpdated            []func(StatusUpdatedEvent)
-	ApproveOrNotPieceRequest func(*PeerConn, Request) bool
+	StatusUpdated []func(StatusUpdatedEvent)
 }
 
 type ReceivedUsefulDataEvent = PeerMessageEvent

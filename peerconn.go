@@ -889,14 +889,6 @@ func (c *PeerConn) mainReadLoop() (err error) {
 	t := c.t
 	cl := t.cl
 
-	if c.peerState == nil {
-		c.peerState = &PeerState{
-			pendingRequests: make(chan Request, 65535),
-		}
-
-		go c.Releaser()
-	}
-
 	decoder := pp.Decoder{
 		R:         bufio.NewReaderSize(c.r, 1<<17),
 		MaxLength: 4 * pp.Integer(max(int64(t.chunkSize), defaultChunkSize)),
@@ -994,15 +986,21 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.Request:
 			r := newRequestFromMessage(&msg)
-			if c.cl.config.Callbacks.ApproveOrNotPieceRequest != nil {
-				if !c.cl.config.Callbacks.ApproveOrNotPieceRequest(c, r) {
+			if c.Peer.cl.GoThroughReleaser {
+				if c.peerState != nil {
+					c.peerState = &PeerState{
+						pendingRequests: make(chan Request, c.t.numPieces()),
+					}
+
+					go c.Releaser()
+				} else {
 					c.peerState.pendingRequests <- r
-					break
 				}
-			}
-			err = c.onReadRequest(r, true)
-			if err != nil {
-				err = fmt.Errorf("on reading request %v: %w", r, err)
+			} else {
+				err = c.onReadRequest(r, true)
+				if err != nil {
+					err = fmt.Errorf("on reading request %v: %w", r, err)
+				}
 			}
 		case pp.Piece:
 			c.doChunkReadStats(int64(len(msg.Piece)))
