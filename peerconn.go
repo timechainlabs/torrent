@@ -992,7 +992,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 						pendingRequests: make(chan Request, c.t.numPieces()),
 					}
 
-					go c.Releaser()
+					go c.Releaser(c.Peer.cl.GoThroughFunc)
 				} else {
 					c.peerState.pendingRequests <- r
 				}
@@ -1063,7 +1063,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 	}
 }
 
-func (c *PeerConn) Releaser() {
+func (c *PeerConn) Releaser(f func() <-chan struct{}) {
 	for {
 		request, ok := <-c.peerState.pendingRequests
 		if ok {
@@ -1072,15 +1072,29 @@ func (c *PeerConn) Releaser() {
 				err := c.onReadRequest(request, true)
 				if err != nil {
 					c.peerState.Mutex.Unlock()
-					return
+					continue
 				}
 
 				c.peerState.BytesLeft -= request.Length.Uint64()
 				c.peerState.Mutex.Unlock()
 			} else {
 				c.peerState.pendingRequests <- request
+
+				select {
+				case _, found := <-f():
+					{
+						if found {
+							c.peerState.BytesLeft += 100000
+						}
+					}
+
+				case <-time.After(time.Minute):
+					{
+						break
+					}
+				}
+
 				c.peerState.Mutex.Unlock()
-				time.Sleep(time.Second)
 			}
 		} else {
 			break
