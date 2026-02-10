@@ -1063,7 +1063,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 	}
 }
 
-func (c *PeerConn) Releaser(f func() <-chan struct{}) {
+func (c *PeerConn) Releaser(f func(*Peer) <-chan struct{}) {
 	for {
 		request, ok := <-c.peerState.pendingRequests
 		if ok {
@@ -1081,7 +1081,7 @@ func (c *PeerConn) Releaser(f func() <-chan struct{}) {
 				c.peerState.pendingRequests <- request
 
 				select {
-				case _, found := <-f():
+				case _, found := <-f(&c.Peer):
 					{
 						if found {
 							c.peerState.BytesLeft += 100000

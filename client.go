@@ -121,7 +121,7 @@ type Client struct {
 	activePieceHashers int
 
 	GoThroughReleaser bool
-	GoThroughFunc     func() <-chan struct{}
+	GoThroughFunc     func(*Peer) <-chan struct{}
 }
 
 type clientWebseedState struct {
