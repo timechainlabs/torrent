@@ -1068,34 +1068,35 @@ func (c *PeerConn) Releaser(f func(*PeerConn) <-chan struct{}) {
 		request, ok := <-c.peerState.pendingRequests
 		if ok {
 			c.peerState.Mutex.Lock()
-			if c.peerState.BytesLeft >= request.Length.Uint64() {
-				err := c.onReadRequest(request, true)
-				if err != nil {
-					c.peerState.Mutex.Unlock()
-					continue
-				}
+			if c.peerState.BytesLeft < request.Length.Uint64() {
+			OUTER:
+				for {
+					select {
+					case _, found := <-f(c):
+						{
+							if found {
+								c.peerState.BytesLeft += 100000
+								break OUTER
+							}
+						}
 
-				c.peerState.BytesLeft -= request.Length.Uint64()
-				c.peerState.Mutex.Unlock()
-			} else {
-				c.peerState.pendingRequests <- request
-
-				select {
-				case _, found := <-f(c):
-					{
-						if found {
-							c.peerState.BytesLeft += 100000
+					case <-time.After(time.Minute):
+						{
+							break
 						}
 					}
-
-				case <-time.After(time.Minute):
-					{
-						break
-					}
 				}
-
-				c.peerState.Mutex.Unlock()
 			}
+
+			err := c.onReadRequest(request, true)
+			if err != nil {
+				c.peerState.pendingRequests <- request
+				c.peerState.Mutex.Unlock()
+				continue
+			}
+
+			c.peerState.BytesLeft -= request.Length.Uint64()
+			c.peerState.Mutex.Unlock()
 		} else {
 			break
 		}
