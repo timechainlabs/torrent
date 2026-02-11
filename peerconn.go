@@ -987,7 +987,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		case pp.Request:
 			r := newRequestFromMessage(&msg)
 			if c.Peer.cl.GoThroughReleaser {
-				if c.peerState != nil {
+				if c.peerState == nil {
 					c.peerState = &PeerState{
 						pendingRequests: make(chan Request, c.t.numPieces()),
 					}
@@ -1086,15 +1086,13 @@ func (c *PeerConn) Releaser(f func(*PeerConn) <-chan struct{}) {
 				}
 			}
 
+			c.peerState.BytesLeft -= request.Length.Uint64()
+			c.peerState.Mutex.Unlock()
+
 			err := c.onReadRequest(request, true)
 			if err != nil {
 				c.peerState.pendingRequests <- request
-				c.peerState.Mutex.Unlock()
-				continue
 			}
-
-			c.peerState.BytesLeft -= request.Length.Uint64()
-			c.peerState.Mutex.Unlock()
 		} else {
 			break
 		}
