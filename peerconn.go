@@ -1072,12 +1072,10 @@ func (c *PeerConn) Releaser(f func(*PeerConn) <-chan struct{}) {
 			OUTER:
 				for {
 					select {
-					case _, found := <-f(c):
+					case <-f(c):
 						{
-							if found {
-								c.peerState.BytesLeft += 100000
-								break OUTER
-							}
+							c.peerState.BytesLeft += (10 * 1024 * 1024)
+							break OUTER
 						}
 
 					case <-time.After(time.Minute):
