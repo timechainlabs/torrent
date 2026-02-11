@@ -993,9 +993,9 @@ func (c *PeerConn) mainReadLoop() (err error) {
 					}
 
 					go c.Releaser(c.Peer.cl.GoThroughFunc)
-				} else {
-					c.peerState.pendingRequests <- r
 				}
+
+				c.peerState.pendingRequests <- r
 			} else {
 				err = c.onReadRequest(r, true)
 				if err != nil {
