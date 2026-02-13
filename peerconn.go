@@ -456,7 +456,7 @@ func (cn *PeerConn) postBitfield() {
 		Type:     pp.Bitfield,
 		Bitfield: cn.t.bitfield(),
 	})
-	cn.sentHaves = bitmap.Bitmap{cn.t._completedPieces.Clone()}
+	cn.sentHaves = bitmap.Bitmap{RB: cn.t._completedPieces.Clone()}
 }
 
 func (cn *PeerConn) handleOnNeedUpdateRequests() {
@@ -883,7 +883,9 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		}
 
 		if c.peerState != nil && c.peerState.pendingRequests != nil {
+			c.peerState.Mutex.Lock()
 			close(c.peerState.pendingRequests)
+			c.peerState.Mutex.Unlock()
 		}
 	}()
 	t := c.t
@@ -1064,35 +1066,49 @@ func (c *PeerConn) mainReadLoop() (err error) {
 }
 
 func (c *PeerConn) Releaser(f func(*PeerConn) <-chan struct{}) {
+OUTER1:
 	for {
+		c.peerState.Mutex.Lock()
+
 		request, ok := <-c.peerState.pendingRequests
 		if ok {
-			c.peerState.Mutex.Lock()
 			if c.peerState.BytesLeft < request.Length.Uint64() {
-			OUTER:
+				var looped uint8
+			OUTER2:
 				for {
-					select {
-					case <-f(c):
-						{
-							c.peerState.BytesLeft += (10 * 1024 * 1024)
-							break OUTER
-						}
+					if looped == 5 {
+						c.peerState.Mutex.Unlock()
+						continue OUTER1
+					} else {
+						select {
+						case <-f(c):
+							{
+								c.peerState.BytesLeft += (10 * 1024 * 1024)
+								break OUTER2
+							}
 
-					case <-time.After(time.Minute):
-						{
-							break
+						case <-time.After(10 * time.Second):
+							{
+								looped++
+								break
+							}
 						}
 					}
 				}
 			}
 
-			c.peerState.BytesLeft -= request.Length.Uint64()
-			c.peerState.Mutex.Unlock()
-
-			c.onReadRequest(request, true)
+			err := c.onReadRequest(request, true)
+			if err != nil {
+				c.peerState.pendingRequests <- request
+			} else {
+				c.peerState.BytesLeft -= request.Length.Uint64()
+			}
 		} else {
+			c.peerState.Mutex.Unlock()
 			break
 		}
+
+		c.peerState.Mutex.Unlock()
 	}
 }
 
