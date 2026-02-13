@@ -1089,10 +1089,7 @@ func (c *PeerConn) Releaser(f func(*PeerConn) <-chan struct{}) {
 			c.peerState.BytesLeft -= request.Length.Uint64()
 			c.peerState.Mutex.Unlock()
 
-			err := c.onReadRequest(request, true)
-			if err != nil {
-				c.peerState.pendingRequests <- request
-			}
+			c.onReadRequest(request, true)
 		} else {
 			break
 		}
