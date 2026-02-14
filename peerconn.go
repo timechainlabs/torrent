@@ -1077,6 +1077,7 @@ OUTER1:
 			OUTER2:
 				for {
 					if looped == 5 {
+						c.peerState.pendingRequests <- request
 						c.peerState.Mutex.Unlock()
 						continue OUTER1
 					} else {
