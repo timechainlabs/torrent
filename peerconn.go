@@ -877,6 +877,12 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		} else {
 			torrent.Add("connection.mainReadLoop returned with no error", 1)
 		}
+
+		if c.peerState != nil && c.peerState.pendingRequests != nil {
+			c.peerState.Mutex.Lock()
+			close(c.peerState.pendingRequests)
+			c.peerState.Mutex.Unlock()
+		}
 	}()
 	t := c.t
 	cl := t.cl
@@ -977,10 +983,17 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		case pp.Bitfield:
 			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.Request:
+			r := newRequestFromMessage(&msg)
 			if c.cl.config.EnableSeedrush {
+				if c.peerState == nil {
+					c.peerState = new(PeerState)
+					c.peerState.pendingRequests = make(chan Request, c.t.numPieces())
 
+					go c.Releaser(c.t.cl.config.SeedrushFunc)
+				}
+
+				c.peerState.pendingRequests <- r
 			} else {
-				r := newRequestFromMessage(&msg)
 				err = c.onReadRequest(r, true)
 				if err != nil {
 					err = fmt.Errorf("on reading request %v: %w", r, err)

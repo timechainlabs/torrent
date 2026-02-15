@@ -8,10 +8,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/timechainlabs/dht/v2"
-	"github.com/timechainlabs/dht/v2/krpc"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2"
+	"github.com/timechainlabs/dht/v2"
+	"github.com/timechainlabs/dht/v2/krpc"
 
 	"github.com/pion/webrtc/v4"
 	"golang.org/x/time/rate"
@@ -198,6 +198,7 @@ type ClientConfig struct {
 	DisableWebtorrent bool
 	DisableWebseeds   bool
 	EnableSeedrush    bool
+	SeedrushFunc      func(*PeerConn) <-chan struct{}
 
 	Callbacks Callbacks
 
