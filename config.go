@@ -197,6 +197,7 @@ type ClientConfig struct {
 
 	DisableWebtorrent bool
 	DisableWebseeds   bool
+	EnableSeedrush    bool
 
 	Callbacks Callbacks
 
@@ -257,6 +258,7 @@ func NewDefaultClientConfig() *ClientConfig {
 		MaxUnverifiedBytes:     64 << 20,
 		DialRateLimiter:        rate.NewLimiter(10, 10),
 		PieceHashersPerTorrent: 2,
+		EnableSeedrush:         true,
 	}
 	cc.DhtStartingNodes = func(network string) dht.StartingNodesGetter {
 		return func() ([]dht.Addr, error) { return dht.GlobalBootstrapAddrs(network) }

@@ -134,10 +134,6 @@ type PeerConn struct {
 	peerState *PeerState
 }
 
-func (cn *PeerConn) GetPeerState() *PeerState {
-	return cn.peerState
-}
-
 func (*PeerConn) allConnStatsImplField(stats *AllConnStats) *ConnStats {
 	return &stats.PeerConns
 }
@@ -336,7 +332,7 @@ func (me *PeerConn) havePeerRequest(r Request) bool {
 	return MapContains(me.unreadPeerRequests, r) || MapContains(me.readyPeerRequests, r)
 }
 
-func (cn *PeerConn) choke(msg func(pp.Message) bool) (more bool) {
+func (cn *PeerConn) choke(msg messageWriter) (more bool) {
 	if cn.choking {
 		return true
 	}
@@ -456,7 +452,7 @@ func (cn *PeerConn) postBitfield() {
 		Type:     pp.Bitfield,
 		Bitfield: cn.t.bitfield(),
 	})
-	cn.sentHaves = bitmap.Bitmap{RB: cn.t._completedPieces.Clone()}
+	cn.sentHaves = bitmap.Bitmap{cn.t._completedPieces.Clone()}
 }
 
 func (cn *PeerConn) handleOnNeedUpdateRequests() {
@@ -881,12 +877,6 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		} else {
 			torrent.Add("connection.mainReadLoop returned with no error", 1)
 		}
-
-		if c.peerState != nil && c.peerState.pendingRequests != nil {
-			c.peerState.Mutex.Lock()
-			close(c.peerState.pendingRequests)
-			c.peerState.Mutex.Unlock()
-		}
 	}()
 	t := c.t
 	cl := t.cl
@@ -987,18 +977,10 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		case pp.Bitfield:
 			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.Request:
-			r := newRequestFromMessage(&msg)
-			if c.Peer.cl.GoThroughReleaser {
-				if c.peerState == nil {
-					c.peerState = &PeerState{
-						pendingRequests: make(chan Request, c.t.numPieces()),
-					}
+			if c.cl.config.EnableSeedrush {
 
-					go c.Releaser(c.Peer.cl.GoThroughFunc)
-				}
-
-				c.peerState.pendingRequests <- r
 			} else {
+				r := newRequestFromMessage(&msg)
 				err = c.onReadRequest(r, true)
 				if err != nil {
 					err = fmt.Errorf("on reading request %v: %w", r, err)
@@ -1183,12 +1165,10 @@ func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err
 	if err != nil {
 		return
 	}
-
 	if !builtin {
 		// User should have taken care of this in PeerConnReadExtensionMessage callback.
 		return nil
 	}
-
 	switch extensionName {
 	case pp.ExtensionNameMetadata:
 		err := cl.gotMetadataExtensionMsg(payload, t, c)
@@ -1444,10 +1424,16 @@ func (c *PeerConn) addBuiltinLtepProtocols(pex bool) {
 	c.LocalLtepProtocolMap = &c.t.cl.defaultLocalLtepProtocolMap
 }
 
-func (pc *PeerConn) WriteExtendedMessage(extId uint32, payload []byte) error {
+func (pc *PeerConn) WriteExtendedMessage(extName pp.ExtensionName, payload []byte) error {
+	pc.locker().Lock()
+	defer pc.locker().Unlock()
+	id := pc.PeerExtensionIDs[extName]
+	if id == 0 {
+		return fmt.Errorf("peer does not support or has disabled extension %q", extName)
+	}
 	pc.write(pp.Message{
 		Type:            pp.Extended,
-		ExtendedID:      pp.ExtensionNumber(extId),
+		ExtendedID:      id,
 		ExtendedPayload: payload,
 	})
 	return nil

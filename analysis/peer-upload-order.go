@@ -64,8 +64,8 @@ func (me *PeerUploadOrder) report(desc string, req torrent.Request, peer *torren
 
 func (me *PeerUploadOrder) onReceivedRequested(event torrent.PeerMessageEvent) {
 	req := torrent.Request{
-		Index: event.Message.Index,
-		ChunkSpec: torrent.ChunkSpec{
+		event.Message.Index,
+		torrent.ChunkSpec{
 			Begin:  event.Message.Begin,
 			Length: pp.Integer(len(event.Message.Piece)),
 		},
