@@ -1065,42 +1065,49 @@ OUTER1:
 	for {
 		c.peerState.Mutex.Lock()
 
-		request, ok := <-c.peerState.pendingRequests
-		if ok {
-			if c.peerState.BytesLeft < request.Length.Uint64() {
-				var looped uint8
-			OUTER2:
-				for {
-					if looped == 5 {
-						c.peerState.pendingRequests <- request
-						c.peerState.Mutex.Unlock()
-						continue OUTER1
-					} else {
-						select {
-						case <-f(c):
-							{
-								c.peerState.BytesLeft += (10 * 1024 * 1024)
-								break OUTER2
-							}
+		select {
+		case request, ok := <-c.peerState.pendingRequests:
+			{
+				if ok {
+					if c.peerState.BytesLeft < request.Length.Uint64() {
+						var looped uint8
+					OUTER2:
+						for {
+							if looped == 5 {
+								c.peerState.pendingRequests <- request
+								c.peerState.Mutex.Unlock()
+								continue OUTER1
+							} else {
+								select {
+								case <-f(c):
+									{
+										c.peerState.BytesLeft += (10 * 1024 * 1024)
+										break OUTER2
+									}
 
-						case <-time.After(10 * time.Second):
-							{
-								looped++
-								break
+								case <-time.After(10 * time.Second):
+									{
+										looped++
+										break
+									}
+								}
 							}
 						}
 					}
+
+					err := c.onReadRequest(request, true)
+					if err != nil {
+						c.peerState.pendingRequests <- request
+					} else {
+						c.peerState.BytesLeft -= request.Length.Uint64()
+					}
+				} else {
+					c.peerState.Mutex.Unlock()
+					break OUTER1
 				}
 			}
 
-			err := c.onReadRequest(request, true)
-			if err != nil {
-				c.peerState.pendingRequests <- request
-			} else {
-				c.peerState.BytesLeft -= request.Length.Uint64()
-			}
-		} else {
-			c.peerState.Mutex.Unlock()
+		case <-time.After(time.Second):
 			break
 		}
 
@@ -1437,16 +1444,10 @@ func (c *PeerConn) addBuiltinLtepProtocols(pex bool) {
 	c.LocalLtepProtocolMap = &c.t.cl.defaultLocalLtepProtocolMap
 }
 
-func (pc *PeerConn) WriteExtendedMessage(extName pp.ExtensionName, payload []byte) error {
-	pc.locker().Lock()
-	defer pc.locker().Unlock()
-	id := pc.PeerExtensionIDs[extName]
-	if id == 0 {
-		return fmt.Errorf("peer does not support or has disabled extension %q", extName)
-	}
+func (pc *PeerConn) WriteExtendedMessage(extId pp.ExtensionNumber, extName pp.ExtensionName, payload []byte) error {
 	pc.write(pp.Message{
 		Type:            pp.Extended,
-		ExtendedID:      id,
+		ExtendedID:      extId,
 		ExtendedPayload: payload,
 	})
 	return nil
