@@ -1444,7 +1444,7 @@ func (c *PeerConn) addBuiltinLtepProtocols(pex bool) {
 	c.LocalLtepProtocolMap = &c.t.cl.defaultLocalLtepProtocolMap
 }
 
-func (pc *PeerConn) WriteExtendedMessage(extId pp.ExtensionNumber, extName pp.ExtensionName, payload []byte) error {
+func (pc *PeerConn) WriteExtendedMessage(extId pp.ExtensionNumber, payload []byte) error {
 	pc.write(pp.Message{
 		Type:            pp.Extended,
 		ExtendedID:      extId,
