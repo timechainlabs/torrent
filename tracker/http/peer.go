@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/anacrolix/dht/v2/krpc"
+	"github.com/timechainlabs/dht/v2/krpc"
 )
 
 // TODO: Use netip.Addr and Option[[20]byte].

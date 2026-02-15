@@ -3,7 +3,7 @@ package udp
 import (
 	"encoding"
 
-	"github.com/anacrolix/dht/v2/krpc"
+	"github.com/timechainlabs/dht/v2/krpc"
 	"github.com/timechainlabs/torrent/tracker/shared"
 	"github.com/timechainlabs/torrent/types"
 	"github.com/timechainlabs/torrent/types/infohash"

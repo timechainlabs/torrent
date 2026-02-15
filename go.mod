@@ -9,7 +9,6 @@ require (
 	github.com/anacrolix/bargle/v2 v2.0.0
 	github.com/anacrolix/btree v0.1.1
 	github.com/anacrolix/chansync v0.7.0
-	github.com/anacrolix/dht/v2 v2.23.0
 	github.com/anacrolix/envpprof v1.4.0
 	github.com/anacrolix/fuse v0.3.2
 	github.com/anacrolix/generics v0.1.1-0.20251125230353-15d98d46693b
@@ -48,6 +47,7 @@ require (
 	github.com/protolambda/ctxlock v0.1.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/btree v1.8.1
+	github.com/timechainlabs/dht/v2 v2.1.0
 	go.etcd.io/bbolt v1.3.6
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
@@ -67,7 +67,6 @@ require (
 	github.com/anacrolix/missinggo/perf v1.0.0 // indirect
 	github.com/anacrolix/mmsg v1.0.1 // indirect
 	github.com/anacrolix/stm v0.5.0 // indirect
-	github.com/anacrolix/torrent v1.48.1-0.20230103142631-c20f73d53e9f // indirect
 	github.com/benbjohnson/immutable v0.4.1-0.20221220213129-8932b999621d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.2.2 // indirect

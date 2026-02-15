@@ -1,7 +1,7 @@
 package peer_protocol
 
 import (
-	"github.com/anacrolix/dht/v2/krpc"
+	"github.com/timechainlabs/dht/v2/krpc"
 
 	"github.com/timechainlabs/torrent/bencode"
 )

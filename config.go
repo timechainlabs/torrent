@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/anacrolix/dht/v2"
-	"github.com/anacrolix/dht/v2/krpc"
+	"github.com/timechainlabs/dht/v2"
+	"github.com/timechainlabs/dht/v2/krpc"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2"
 

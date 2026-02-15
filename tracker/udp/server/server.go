@@ -10,7 +10,7 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/anacrolix/dht/v2/krpc"
+	"github.com/timechainlabs/dht/v2/krpc"
 	"github.com/anacrolix/generics"
 	"github.com/anacrolix/log"
 	"go.opentelemetry.io/otel"
