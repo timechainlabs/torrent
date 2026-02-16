@@ -1095,7 +1095,9 @@ OUTER1:
 						}
 					}
 
+					c.cl.lock()
 					c.onReadRequest(request, true)
+					c.cl.unlock()
 					c.peerState.BytesLeft -= request.Length.Uint64()
 				} else {
 					c.peerState.Mutex.Unlock()
