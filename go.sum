@@ -70,8 +70,8 @@ github.com/anacrolix/bargle v1.0.0 h1:jc4EKULEJx4GV10rpERpQp1jsiJWWOEGplsqssc4sA
 github.com/anacrolix/bargle v1.0.0/go.mod h1:9xUiZbkh+94FbiIAL1HXpAIBa832f3Mp07rRPl5c5RQ=
 github.com/anacrolix/bargle/v2 v2.0.0 h1:jeKsKOCiAWKMi0HJdlrux/+V12I7PVX5dny/HxQ3xZw=
 github.com/anacrolix/bargle/v2 v2.0.0/go.mod h1:rKvwnOHgcXKPJTINj5RmkifgpxgEGC9bkJiv5kM4ctM=
-github.com/anacrolix/btree v0.1.1 h1:igdFPLrt82L6qovzbEGSMkTeiwcU3EFIGl2K8XWocAc=
-github.com/anacrolix/btree v0.1.1/go.mod h1:KHWYRZuUULATjUGJC4dQDXx/BPOnWrJozGR6TndjOmc=
+github.com/anacrolix/btree v0.0.0-20251201064447-d86c3fa41bd8 h1:c02PsmoaChabVqAFm7pqPI1UIkDdDAjUaWa6ZmfxybQ=
+github.com/anacrolix/btree v0.0.0-20251201064447-d86c3fa41bd8/go.mod h1:7stWJ39LeusmMI8mjJuhFNRqep//vx0AsaySRoK9or0=
 github.com/anacrolix/chansync v0.7.0 h1:wgwxbsJRmOqNjil4INpxHrDp4rlqQhECxR8/WBP4Et0=
 github.com/anacrolix/chansync v0.7.0/go.mod h1:DZsatdsdXxD0WiwcGl0nJVwyjCKMDv+knl1q2iBjA2k=
 github.com/anacrolix/envpprof v0.0.0-20180404065416-323002cec2fa/go.mod h1:KgHhUaQMc8cC0+cEflSgCFNFbKwi5h54gqtVn8yhP7c=
@@ -503,8 +503,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/tidwall/btree v1.8.1 h1:27ehoXvm5AG/g+1VxLS1SD3vRhp/H7LuEfwNvddEdmA=
 github.com/tidwall/btree v1.8.1/go.mod h1:jBbTdUWhSZClZWoDg54VnvV7/54modSOzDN7VXftj1A=
-github.com/timechainlabs/dht/v2 v2.1.0 h1:jlVUfP94pV/y+yI8ZEAFeOXbtKuuSS/w996PBnWf1+E=
-github.com/timechainlabs/dht/v2 v2.1.0/go.mod h1:C+s+Q0A6C+pkhwh8W355yJcdoOt/tyVZWbgXB7gqW9A=
+github.com/timechainlabs/dht/v2 v2.0.0 h1:wUs+Vaa0SZI+oXKFMWqYeCCWWC1VXei8ZQdopo6mXfk=
+github.com/timechainlabs/dht/v2 v2.0.0/go.mod h1:C+s+Q0A6C+pkhwh8W355yJcdoOt/tyVZWbgXB7gqW9A=
 github.com/tinylib/msgp v1.0.2/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDWklFE=
 github.com/tinylib/msgp v1.1.0/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDWklFE=
 github.com/tinylib/msgp v1.1.2/go.mod h1:+d+yLhGm8mzTaHzB+wgMYrodPfmZrzkirds8fDWklFE=
@@ -910,6 +910,8 @@ gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLks
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=
+gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=
 gopkg.in/errgo.v2 v2.1.0/go.mod h1:hNsd1EY+bozCKY1Ytp96fpM3vjJbqLJn88ws8XvfDNI=
 gopkg.in/fsnotify.v1 v1.4.7/go.mod h1:Tz8NjZHkW78fSQdbUxIjBTcgA1z1m8ZHf0WmKUhAMys=
 gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7/go.mod h1:dt/ZhP58zS4L8KSrWDmTeBkI65Dw0HsyUHuEVlX15mw=

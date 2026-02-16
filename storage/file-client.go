@@ -70,6 +70,10 @@ func (me *fileClientImpl) Close() error {
 	return me.opts.PieceCompletion.Close()
 }
 
+var defaultFileIo = func() fileIo {
+	return classicFileIo{}
+}
+
 func (fs *fileClientImpl) OpenTorrent(
 	ctx context.Context,
 	info *metainfo.Info,

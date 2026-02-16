@@ -26,38 +26,38 @@ type fileTorrentImpl struct {
 	client *fileClientImpl
 }
 
-func (me *fileTorrentImpl) logger() *slog.Logger {
-	return me.client.opts.Logger
+func (fts *fileTorrentImpl) logger() *slog.Logger {
+	return fts.client.opts.Logger
 }
 
-func (me *fileTorrentImpl) pieceCompletion() PieceCompletion {
-	return me.client.opts.PieceCompletion
+func (fts *fileTorrentImpl) pieceCompletion() PieceCompletion {
+	return fts.client.opts.PieceCompletion
 }
 
-func (me *fileTorrentImpl) pieceCompletionKey(p int) metainfo.PieceKey {
+func (fts *fileTorrentImpl) pieceCompletionKey(p int) metainfo.PieceKey {
 	return metainfo.PieceKey{
-		InfoHash: me.infoHash,
+		InfoHash: fts.infoHash,
 		Index:    p,
 	}
 }
 
-func (me *fileTorrentImpl) setPieceCompletion(p int, complete bool) error {
-	return me.pieceCompletion().Set(me.pieceCompletionKey(p), complete)
+func (fts *fileTorrentImpl) setPieceCompletion(p int, complete bool) error {
+	return fts.pieceCompletion().Set(fts.pieceCompletionKey(p), complete)
 }
 
 // Set piece completions based on whether all files in each piece are not .part files.
-func (me *fileTorrentImpl) setCompletionFromPartFiles() error {
-	notComplete := make([]bool, me.info.NumPieces())
-	for fileIndex := range me.files {
-		f := me.file(fileIndex)
+func (fts *fileTorrentImpl) setCompletionFromPartFiles() error {
+	notComplete := make([]bool, fts.info.NumPieces())
+	for fileIndex := range fts.files {
+		f := fts.file(fileIndex)
 		fi, err := os.Stat(f.safeOsPath)
 		if err == nil {
 			if fi.Size() == f.length() {
 				continue
 			}
-			me.logger().Warn("file has unexpected size", "file", f.safeOsPath, "size", fi.Size(), "expected", f.length())
+			fts.logger().Warn("file has unexpected size", "file", f.safeOsPath, "size", fi.Size(), "expected", f.length())
 		} else if !errors.Is(err, fs.ErrNotExist) {
-			me.logger().Warn("error checking file size", "err", err)
+			fts.logger().Warn("error checking file size", "err", err)
 		}
 		// Ensure all pieces associated with a file are not marked as complete (at most unknown).
 		for pieceIndex := f.beginPieceIndex(); pieceIndex < f.endPieceIndex(); pieceIndex++ {
@@ -66,14 +66,14 @@ func (me *fileTorrentImpl) setCompletionFromPartFiles() error {
 	}
 	for i, nc := range notComplete {
 		if nc {
-			c := me.getCompletion(i)
+			c := fts.getCompletion(i)
 			if c.Complete {
 				// TODO: We need to set unknown so that verification of the data we do have could
 				// occur naturally but that'll be a big change.
-				panicif.Err(me.setPieceCompletion(i, false))
+				panicif.Err(fts.setPieceCompletion(i, false))
 			}
 		} else {
-			err := me.setPieceCompletion(i, true)
+			err := fts.setPieceCompletion(i, true)
 			if err != nil {
 				return fmt.Errorf("setting piece %v completion: %w", i, err)
 			}
@@ -82,49 +82,49 @@ func (me *fileTorrentImpl) setCompletionFromPartFiles() error {
 	return nil
 }
 
-func (me *fileTorrentImpl) partFiles() bool {
-	return me.client.opts.partFiles()
+func (fts *fileTorrentImpl) partFiles() bool {
+	return fts.client.opts.partFiles()
 }
 
-func (me *fileTorrentImpl) pathForWrite(f *file) string {
-	if me.partFiles() {
+func (fts *fileTorrentImpl) pathForWrite(f *file) string {
+	if fts.partFiles() {
 		return f.partFilePath()
 	}
 	return f.safeOsPath
 }
 
-func (me *fileTorrentImpl) getCompletion(piece int) Completion {
-	cmpl, err := me.pieceCompletion().Get(metainfo.PieceKey{me.infoHash, piece})
+func (fts *fileTorrentImpl) getCompletion(piece int) Completion {
+	cmpl, err := fts.pieceCompletion().Get(metainfo.PieceKey{fts.infoHash, piece})
 	cmpl.Err = errors.Join(cmpl.Err, err)
 	return cmpl
 }
 
-func (me *fileTorrentImpl) Piece(p metainfo.Piece) PieceImpl {
+func (fts *fileTorrentImpl) Piece(p metainfo.Piece) PieceImpl {
 	// Create a view onto the file-based torrent storage.
-	_io := fileTorrentImplIO{me}
+	_io := fileTorrentImplIO{fts}
 	// Return the appropriate segments of this.
 	return &filePieceImpl{
-		me,
+		fts,
 		p,
 		missinggo.NewSectionWriter(_io, p.Offset(), p.Length()),
 		io.NewSectionReader(_io, p.Offset(), p.Length()),
 	}
 }
 
-func (me *fileTorrentImpl) Close() error {
-	return me.io.Close()
+func (fs *fileTorrentImpl) Close() error {
+	return nil
 }
 
-func (me *fileTorrentImpl) file(index int) file {
+func (fts *fileTorrentImpl) file(index int) file {
 	return file{
-		Info:      me.info,
-		FileInfo:  &me.metainfoFileInfos[index],
-		fileExtra: &me.files[index],
+		Info:      fts.info,
+		FileInfo:  &fts.metainfoFileInfos[index],
+		fileExtra: &fts.files[index],
 	}
 }
 
 // Open file for reading.
-func (me *fileTorrentImpl) openSharedFile(file file) (f sharableReader, err error) {
+func (me *fileTorrentImpl) openSharedFile(file file) (f sharedFileIf, err error) {
 	file.mu.RLock()
 	// Fine to open once under each name on a unix system. We could make the shared file keys more
 	// constrained, but it shouldn't matter. TODO: Ensure at most one of the names exist.
@@ -153,8 +153,8 @@ func (me *fileTorrentImpl) openFile(file file) (f fileReader, err error) {
 	return
 }
 
-func (me *fileTorrentImpl) openForWrite(file file) (_ fileWriter, err error) {
+func (fst *fileTorrentImpl) openForWrite(file file) (_ fileWriter, err error) {
 	// It might be possible to have a writable handle shared files cache if we need it.
-	me.logger().Debug("openForWrite", "file.safeOsPath", file.safeOsPath)
-	return me.io.openForWrite(me.pathForWrite(&file), file.FileInfo.Length)
+	fst.logger().Debug("openForWrite", "file.safeOsPath", file.safeOsPath)
+	return fst.io.openForWrite(fst.pathForWrite(&file), file.FileInfo.Length)
 }

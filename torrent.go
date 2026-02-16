@@ -226,11 +226,9 @@ type torrentTrackerAnnouncerKey struct {
 }
 
 func (me torrentTrackerAnnouncerKey) Compare(other torrentTrackerAnnouncerKey) int {
-	ret := me.ShortInfohash.Compare(other.ShortInfohash)
-	if ret != 0 {
-		return ret
-	}
-	return cmp.Compare(me.url, other.url)
+	return cmp.Or(
+		me.ShortInfohash.Compare(other.ShortInfohash),
+		cmp.Compare(me.url, other.url))
 }
 
 // Has the modified scheme for announcer-per-IP protocol and such-forth.
@@ -613,8 +611,7 @@ func (t *Torrent) onSetInfo() {
 	})
 }
 
-// Checks the info bytes hash to expected values. Fills in any missing infohashes. TODO: Add a test
-// checking what happens if you try to apply the wrong info bytes.
+// Checks the info bytes hash to expected values. Fills in any missing infohashes.
 func (t *Torrent) hashInfoBytes(b []byte, info *metainfo.Info) error {
 	v1Hash := infohash.HashBytes(b)
 	v2Hash := infohash_v2.HashBytes(b)
@@ -2061,7 +2058,12 @@ func (t *Torrent) updateWantPeersEvent() {
 // Regular tracker announcing is dispatched as a single "actor". Probably needs to incorporate all
 // tracker types at some point.
 func (t *Torrent) deferUpdateRegularTrackerAnnouncing() {
-	t.cl.regularTrackerAnnounceDispatcher.pendTorrentInputUpdate(t)
+	t.cl.unlockHandlers.deferUpdateTorrentRegularTrackerAnnouncing(t)
+}
+
+func (t *Torrent) updateRegularTrackerAnnouncing() {
+	// Note this uses the map that only contains regular tracker URLs.
+	t.cl.regularTrackerAnnounceDispatcher.updateTorrentInput(t)
 }
 
 // Returns whether the client should make effort to seed the torrent.

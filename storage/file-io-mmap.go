@@ -5,12 +5,11 @@ package storage
 import (
 	"errors"
 	"fmt"
+	"github.com/anacrolix/sync"
 	"io"
 	"io/fs"
 	"os"
 	"sync/atomic"
-
-	"github.com/anacrolix/sync"
 
 	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/missinggo/v2/panicif"
@@ -45,39 +44,20 @@ func init() {
 
 type mmapFileIo struct {
 	mu sync.RWMutex
-	// We could automatically expire fileMmaps by using weak.Pointers? Currently, the store never
+	// We could automatically expire fileMmaps by using weak.Pointers? Currently the store never
 	// relinquishes its extra ref so we never clean up anyway.
-	paths  map[string]*fileMmap
-	closed bool
-}
-
-func (me *mmapFileIo) Close() error {
-	me.mu.Lock()
-	defer me.mu.Unlock()
-	for name := range me.paths {
-		me.closeName(name)
-	}
-	me.paths = nil
-	me.closed = true
-	return nil
-}
-
-func (me *mmapFileIo) closedErr() error {
-	if me.closed {
-		return fs.ErrClosed
-	}
-	return nil
+	paths map[string]*fileMmap
 }
 
 func (me *mmapFileIo) rename(from, to string) (err error) {
 	me.mu.Lock()
 	defer me.mu.Unlock()
-	me.closeName(from)
-	me.closeName(to)
+	me.close(from)
+	me.close(to)
 	return os.Rename(from, to)
 }
 
-func (me *mmapFileIo) closeName(name string) {
+func (me *mmapFileIo) close(name string) {
 	v, ok := me.paths[name]
 	if ok {
 		// We're forcibly closing the handle. Leave the store's ref intact so we're the only one
@@ -137,7 +117,7 @@ func (me *fileMmap) inc() {
 	panicif.LessThanOrEqual(me.refs.Add(1), 0)
 }
 
-func (me *mmapFileIo) openForSharedRead(name string) (_ sharableReader, err error) {
+func (me *mmapFileIo) openForSharedRead(name string) (_ sharedFileIf, err error) {
 	return me.openReadOnly(name)
 }
 
@@ -154,10 +134,6 @@ func (me *mmapFileIo) openForRead(name string) (_ fileReader, err error) {
 func (me *mmapFileIo) openReadOnly(name string) (_ *mmapSharedFileHandle, err error) {
 	me.mu.Lock()
 	defer me.mu.Unlock()
-	err = me.closedErr()
-	if err != nil {
-		return
-	}
 	v, ok := me.paths[name]
 	if ok {
 		return newMmapFile(v), nil
@@ -179,10 +155,6 @@ func (me *mmapFileIo) openReadOnly(name string) (_ *mmapSharedFileHandle, err er
 func (me *mmapFileIo) openForWrite(name string, size int64) (_ fileWriter, err error) {
 	me.mu.Lock()
 	defer me.mu.Unlock()
-	err = me.closedErr()
-	if err != nil {
-		return
-	}
 	v, ok := me.paths[name]
 	if ok {
 		if int64(len(v.m)) == size && v.writable {

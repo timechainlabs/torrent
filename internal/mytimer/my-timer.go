@@ -13,7 +13,7 @@ import (
 // running at a time, and that callback is responsible for also returning the next delay.
 type Timer struct {
 	mu     sync.RWMutex
-	when   TimeValue
+	when   time.Time
 	f      Func
 	t      *time.Timer
 	inited bool
@@ -24,7 +24,7 @@ func (me *Timer) Init(first TimeValue, f Func) {
 	me.inited = true
 	me.f = f
 	me.when = first
-	d := time.Until(first.Time)
+	d := time.Until(first)
 	if first.IsZero() {
 		d = math.MaxInt64
 	}
@@ -33,12 +33,12 @@ func (me *Timer) Init(first TimeValue, f Func) {
 	me.t = time.AfterFunc(d, me.innerCallback)
 }
 
-func (me *Timer) update(when TimeValue) {
+func (me *Timer) update(when time.Time) {
 	me.mu.Lock()
 	defer me.mu.Unlock()
-	// Avoid hammering the scheduler with changes. I think it's cheaper to hit the Timer mutex than
-	// it is to reset the timer unnecessarily.
-	if effectivelyEq(when, me.when) {
+	// Avoid hammering the scheduler with changes. I think this will work, and is probably cheaper
+	// than avoiding our object's lock.
+	if when.Equal(me.when) {
 		return
 	}
 	if !me.t.Stop() {
@@ -51,19 +51,19 @@ func (me *Timer) update(when TimeValue) {
 	me.reset(when)
 }
 
-func (me *Timer) reset(when TimeValue) {
+func (me *Timer) reset(when time.Time) {
 	me.when = when
 	if !me.when.IsZero() {
-		panicif.True(me.t.Reset(time.Until(me.when.Time)))
+		panicif.True(me.t.Reset(time.Until(me.when)))
 	}
 }
-func (me *Timer) When() TimeValue {
+func (me *Timer) When() time.Time {
 	return me.when
 }
 
 func (me *Timer) innerCallback() {
 	panicif.True(me.when.IsZero())
-	panicif.True(me.when.After(time.Now()))
+	panicif.True(time.Now().Before(me.when))
 	// Nobody else can set it while we're running (when is non-zero and the timer has fired
 	// already).
 	when := me.f()
@@ -73,6 +73,6 @@ func (me *Timer) innerCallback() {
 }
 
 // Resets if the timer func hasn't fired.
-func (me *Timer) Update(when TimeValue) {
+func (me *Timer) Update(when time.Time) {
 	me.update(when)
 }

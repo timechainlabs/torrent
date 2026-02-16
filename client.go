@@ -24,25 +24,24 @@ import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/anacrolix/chansync"
 	"github.com/anacrolix/chansync/events"
+	"github.com/timechainlabs/dht/v2"
+	"github.com/timechainlabs/dht/v2/krpc"
 	. "github.com/anacrolix/generics"
 	g "github.com/anacrolix/generics"
-	"github.com/anacrolix/generics/heap"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2"
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/missinggo/v2/panicif"
 	"github.com/anacrolix/missinggo/v2/pproffd"
 	"github.com/anacrolix/sync"
-	"github.com/cespare/xxhash"
-	"github.com/dustin/go-humanize"
-	gbtree "github.com/google/btree"
-	"github.com/pion/webrtc/v4"
-	"github.com/timechainlabs/dht/v2"
-	"github.com/timechainlabs/dht/v2/krpc"
 	"github.com/timechainlabs/torrent/internal/amortize"
 	"github.com/timechainlabs/torrent/internal/extracmp"
 	"github.com/timechainlabs/torrent/tracker"
 	"github.com/timechainlabs/torrent/webtorrent"
+	"github.com/cespare/xxhash"
+	"github.com/dustin/go-humanize"
+	gbtree "github.com/google/btree"
+	"github.com/pion/webrtc/v4"
 
 	"github.com/timechainlabs/torrent/bencode"
 	"github.com/timechainlabs/torrent/internal/check"
@@ -2003,28 +2002,19 @@ func (cl *Client) startPieceHashers() {
 	if !cl.canStartPieceHashers() {
 		return
 	}
-	var ts []*Torrent
-	// Maybe we don't actually want to preallocate all this. It might often be empty.
-	//ts := make([]*Torrent, 0, len(cl.torrents))
-
+	ts := make([]*Torrent, 0, len(cl.torrents))
 	for t := range cl.torrents {
 		if !t.considerStartingHashers() {
 			continue
 		}
 		ts = append(ts, t)
 	}
-	if len(ts) == 0 {
-		return
-	}
-	// Sort largest torrents first, as those are preferred by webseeds, and will cause less
-	// thrashing.
-	h := heap.InterfaceForSlice(&ts, func(a, b *Torrent) bool {
-		return a.length() > b.length()
+	// Sort largest torrents first, as those are preferred by webseeds, and will cause less thrashing.
+	slices.SortFunc(ts, func(a, b *Torrent) int {
+		return -cmp.Compare(a.length(), b.length())
 	})
-	heap.Init(h)
-	for h.Len() > 0 {
-		t := heap.Pop(h)
-		_ = t.startPieceHashers()
+	for _, t := range ts {
+		t.startPieceHashers()
 		if !cl.canStartPieceHashers() {
 			break
 		}
