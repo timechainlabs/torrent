@@ -1096,13 +1096,10 @@ OUTER1:
 					}
 
 					c.cl.lock()
-					err := c.onReadRequest(request, true)
-					if err != nil {
-						c.peerState.pendingRequests <- request
-					} else {
-						c.peerState.BytesLeft -= request.Length.Uint64()
-					}
+					c.onReadRequest(request, true)
 					c.cl.unlock()
+
+					c.peerState.BytesLeft -= request.Length.Uint64()
 				} else {
 					c.peerState.Mutex.Unlock()
 					break OUTER1
