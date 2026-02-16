@@ -1085,7 +1085,7 @@ OUTER1:
 										break OUTER2
 									}
 
-								case <-time.After(10 * time.Second):
+								case <-time.After(15 * time.Second):
 									{
 										looped++
 										break
@@ -1095,10 +1095,7 @@ OUTER1:
 						}
 					}
 
-					c.cl.lock()
 					c.onReadRequest(request, true)
-					c.cl.unlock()
-
 					c.peerState.BytesLeft -= request.Length.Uint64()
 				} else {
 					c.peerState.Mutex.Unlock()
@@ -1107,7 +1104,9 @@ OUTER1:
 			}
 
 		case <-time.After(time.Second):
-			break
+			{
+				break
+			}
 		}
 
 		c.peerState.Mutex.Unlock()
