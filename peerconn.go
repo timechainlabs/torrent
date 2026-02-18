@@ -43,6 +43,10 @@ type PeerStatus struct {
 	Err string // see https://github.com/golang/go/issues/5161
 }
 
+type PeerState struct {
+	BytesLeft uint64
+}
+
 // Maintains the state of a BitTorrent-protocol based connection with a peer.
 type PeerConn struct {
 	Peer
@@ -123,6 +127,8 @@ type PeerConn struct {
 	// Set true after we've added our ConnStats generated during handshake to other ConnStat
 	// instances as determined when the *Torrent became known.
 	reconciledHandshakeStats bool
+
+	peerState *PeerState
 }
 
 func (*PeerConn) allConnStatsImplField(stats *AllConnStats) *ConnStats {
@@ -969,8 +975,17 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.Request:
 			r := newRequestFromMessage(&msg)
-			if cl.config.EnableSeedrush {
-				cl.config.SeedrushFunc(c)
+			if c.cl.config.EnableSeedrush {
+				if c.peerState == nil {
+					c.peerState = new(PeerState)
+				}
+
+				if c.peerState.BytesLeft < r.Length.Uint64() {
+					c.cl.config.SeedrushFunc(c)
+					c.peerState.BytesLeft += (10 * 1024 * 1024)
+				}
+
+				c.peerState.BytesLeft -= r.Length.Uint64()
 			}
 
 			err = c.onReadRequest(r, true)

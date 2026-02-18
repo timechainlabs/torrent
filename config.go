@@ -198,7 +198,7 @@ type ClientConfig struct {
 	DisableWebtorrent bool
 	DisableWebseeds   bool
 	EnableSeedrush    bool
-	SeedrushFunc      func(*PeerConn) <-chan struct{}
+	SeedrushFunc      func(*PeerConn)
 
 	Callbacks Callbacks
 
