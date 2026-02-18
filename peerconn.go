@@ -24,7 +24,6 @@ import (
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/missinggo/v2/panicif"
 	"github.com/anacrolix/multiless"
-	"github.com/anacrolix/sync"
 
 	"golang.org/x/time/rate"
 
@@ -42,12 +41,6 @@ type PeerStatus struct {
 	Id  PeerID
 	Ok  bool
 	Err string // see https://github.com/golang/go/issues/5161
-}
-
-type PeerState struct {
-	BytesLeft       uint64
-	Mutex           sync.Mutex
-	pendingRequests chan Request
 }
 
 // Maintains the state of a BitTorrent-protocol based connection with a peer.
@@ -130,8 +123,6 @@ type PeerConn struct {
 	// Set true after we've added our ConnStats generated during handshake to other ConnStat
 	// instances as determined when the *Torrent became known.
 	reconciledHandshakeStats bool
-
-	peerState *PeerState
 }
 
 func (*PeerConn) allConnStatsImplField(stats *AllConnStats) *ConnStats {
@@ -877,12 +868,6 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		} else {
 			torrent.Add("connection.mainReadLoop returned with no error", 1)
 		}
-
-		if c.peerState != nil && c.peerState.pendingRequests != nil {
-			c.peerState.Mutex.Lock()
-			close(c.peerState.pendingRequests)
-			c.peerState.Mutex.Unlock()
-		}
 	}()
 	t := c.t
 	cl := t.cl
@@ -984,20 +969,13 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.Request:
 			r := newRequestFromMessage(&msg)
-			if c.cl.config.EnableSeedrush {
-				if c.peerState == nil {
-					c.peerState = new(PeerState)
-					c.peerState.pendingRequests = make(chan Request, c.t.numPieces())
+			if cl.config.EnableSeedrush {
+				cl.config.SeedrushFunc(c)
+			}
 
-					go c.Releaser(c.t.cl.config.SeedrushFunc)
-				}
-
-				c.peerState.pendingRequests <- r
-			} else {
-				err = c.onReadRequest(r, true)
-				if err != nil {
-					err = fmt.Errorf("on reading request %v: %w", r, err)
-				}
+			err = c.onReadRequest(r, true)
+			if err != nil {
+				err = fmt.Errorf("on reading request %v: %w", r, err)
 			}
 		case pp.Piece:
 			c.doChunkReadStats(int64(len(msg.Piece)))
@@ -1057,61 +1035,6 @@ func (c *PeerConn) mainReadLoop() (err error) {
 		if err != nil {
 			return err
 		}
-	}
-}
-
-func (c *PeerConn) Releaser(f func(*PeerConn) <-chan struct{}) {
-OUTER1:
-	for {
-		c.peerState.Mutex.Lock()
-
-		select {
-		case request, ok := <-c.peerState.pendingRequests:
-			{
-				if ok {
-					if c.peerState.BytesLeft < request.Length.Uint64() {
-						var looped uint8
-					OUTER2:
-						for {
-							if looped == 5 {
-								c.peerState.pendingRequests <- request
-								c.peerState.Mutex.Unlock()
-								continue OUTER1
-							} else {
-								select {
-								case <-f(c):
-									{
-										c.peerState.BytesLeft += (10 * 1024 * 1024)
-										break OUTER2
-									}
-
-								case <-time.After(15 * time.Second):
-									{
-										looped++
-										break
-									}
-								}
-							}
-						}
-					}
-
-					c.cl.lock()
-					c.onReadRequest(request, true)
-					c.cl.unlock()
-					c.peerState.BytesLeft -= request.Length.Uint64()
-				} else {
-					c.peerState.Mutex.Unlock()
-					break OUTER1
-				}
-			}
-
-		case <-time.After(time.Second):
-			{
-				break
-			}
-		}
-
-		c.peerState.Mutex.Unlock()
 	}
 }
 
