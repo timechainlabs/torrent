@@ -45,9 +45,11 @@ type PeerStatus struct {
 }
 
 type PeerState struct {
-	bytesLeft     uint64
-	mutex         sync.Mutex
-	requestBuffer []Request
+	bytesRequested uint64
+	bytesThreshold uint64
+	bytesLeft      uint64
+	mutex          sync.Mutex
+	requestBuffer  []Request
 }
 
 // Maintains the state of a BitTorrent-protocol based connection with a peer.
@@ -988,16 +990,14 @@ func (c *PeerConn) mainReadLoop() (err error) {
 					c.peerState.mutex.Lock()
 					defer c.peerState.mutex.Unlock()
 
-					if c.peerState.bytesLeft < r.Length.Uint64() {
-						c.peerState.requestBuffer = append(c.peerState.requestBuffer, r)
-						c.cl.config.SeedrushFunc(c)
-					} else {
-						c.peerState.bytesLeft -= r.Length.Uint64()
-						err = c.onReadRequest(r, true)
-						if err != nil {
-							err = fmt.Errorf("on reading request %v: %w", r, err)
-						}
+					c.peerState.bytesRequested += r.Length.Uint64()
+
+					if c.peerState.bytesRequested > c.peerState.bytesThreshold {
+						cl.config.SeedrushFunc(c)
+						c.peerState.bytesThreshold += (10 * 1024 * 1024)
 					}
+
+					c.peerState.requestBuffer = append(c.peerState.requestBuffer, r)
 				}()
 			} else {
 				err = c.onReadRequest(r, true)
@@ -1066,10 +1066,10 @@ func (c *PeerConn) mainReadLoop() (err error) {
 	}
 }
 
-func (c *PeerConn) IncrementPeerStateBytes(incrementBy uint64) {
+func (c *PeerConn) IncrementPeerStateBytes() {
 	c.peerState.mutex.Lock()
 	defer c.peerState.mutex.Unlock()
-	c.peerState.bytesLeft += incrementBy
+	c.peerState.bytesLeft += (10 * 1024 * 1024)
 }
 
 func (c *PeerConn) ReleaseBuffer() error {
