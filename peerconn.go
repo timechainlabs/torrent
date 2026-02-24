@@ -1066,15 +1066,10 @@ func (c *PeerConn) mainReadLoop() (err error) {
 	}
 }
 
-func (c *PeerConn) IncrementPeerStateBytes() {
+func (c *PeerConn) IncrementPeerStateBytes() error {
 	c.peerState.mutex.Lock()
 	defer c.peerState.mutex.Unlock()
 	c.peerState.bytesLeft += (10 * 1024 * 1024)
-}
-
-func (c *PeerConn) ReleaseBuffer() error {
-	c.peerState.mutex.Lock()
-	defer c.peerState.mutex.Unlock()
 
 	for i := range c.peerState.requestBuffer {
 		if c.peerState.bytesLeft < c.peerState.requestBuffer[i].Length.Uint64() {
