@@ -991,13 +991,14 @@ func (c *PeerConn) mainReadLoop() (err error) {
 					defer c.peerState.mutex.Unlock()
 
 					c.peerState.bytesRequested += r.Length.Uint64()
+					c.peerState.requestBuffer = append(c.peerState.requestBuffer, r)
 
 					if c.peerState.bytesRequested > c.peerState.bytesThreshold {
 						cl.config.SeedrushFunc(c)
 						c.peerState.bytesThreshold += (10 * 1024 * 1024)
+					} else {
+						err = c.releaseBuffer()
 					}
-
-					c.peerState.requestBuffer = append(c.peerState.requestBuffer, r)
 				}()
 			} else {
 				err = c.onReadRequest(r, true)
@@ -1069,8 +1070,13 @@ func (c *PeerConn) mainReadLoop() (err error) {
 func (c *PeerConn) IncrementPeerStateBytes() error {
 	c.peerState.mutex.Lock()
 	defer c.peerState.mutex.Unlock()
+
 	c.peerState.bytesLeft += (10 * 1024 * 1024)
 
+	return c.releaseBuffer()
+}
+
+func (c *PeerConn) releaseBuffer() error {
 	for i := range c.peerState.requestBuffer {
 		if c.peerState.bytesLeft < c.peerState.requestBuffer[i].Length.Uint64() {
 			c.peerState.requestBuffer = c.peerState.requestBuffer[i:]
