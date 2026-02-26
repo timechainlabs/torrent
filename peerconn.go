@@ -12,7 +12,6 @@ import (
 	"net/netip"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 	"weak"
@@ -48,8 +47,6 @@ type PeerState struct {
 	bytesRequested uint64
 	bytesThreshold uint64
 	bytesLeft      uint64
-	mutex          sync.Mutex
-	requestBuffer  []Request
 }
 
 // Maintains the state of a BitTorrent-protocol based connection with a peer.
@@ -983,28 +980,18 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			if c.cl.config.EnableSeedrush {
 				if c.peerState == nil {
 					c.peerState = new(PeerState)
-					c.peerState.requestBuffer = make([]Request, 0, 256)
 				}
 
-				func() {
-					c.peerState.mutex.Lock()
-					defer c.peerState.mutex.Unlock()
-
-					c.peerState.bytesRequested += r.Length.Uint64()
-					c.peerState.requestBuffer = append(c.peerState.requestBuffer, r)
-
-					if c.peerState.bytesRequested > c.peerState.bytesThreshold {
-						cl.config.SeedrushFunc(c)
-						c.peerState.bytesThreshold += (10 * 1024 * 1024)
-					} else {
-						err = c.releaseBuffer()
-					}
-				}()
-			} else {
-				err = c.onReadRequest(r, true)
-				if err != nil {
-					err = fmt.Errorf("on reading request %v: %w", r, err)
+				c.peerState.bytesRequested += r.Length.Uint64()
+				if c.peerState.bytesRequested > c.peerState.bytesThreshold {
+					cl.config.SeedrushFunc(c)
+					c.peerState.bytesThreshold += (10 * 1024 * 1024)
 				}
+			}
+
+			err = c.onReadRequest(r, true)
+			if err != nil {
+				err = fmt.Errorf("on reading request %v: %w", r, err)
 			}
 		case pp.Piece:
 			c.doChunkReadStats(int64(len(msg.Piece)))
@@ -1065,36 +1052,6 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			return err
 		}
 	}
-}
-
-func (c *PeerConn) IncrementPeerStateBytes() error {
-	c.peerState.mutex.Lock()
-	defer c.peerState.mutex.Unlock()
-
-	c.peerState.bytesLeft += (10 * 1024 * 1024)
-
-	return c.releaseBuffer()
-}
-
-func (c *PeerConn) releaseBuffer() error {
-	for i := range c.peerState.requestBuffer {
-		if c.peerState.bytesLeft < c.peerState.requestBuffer[i].Length.Uint64() {
-			c.peerState.requestBuffer = c.peerState.requestBuffer[i:]
-
-			return nil
-		} else {
-			c.peerState.bytesLeft -= c.peerState.requestBuffer[i].Length.Uint64()
-
-			err := c.onReadRequest(c.peerState.requestBuffer[i], true)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	c.peerState.requestBuffer = make([]Request, 0, len(c.peerState.requestBuffer))
-
-	return nil
 }
 
 func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err error) {
