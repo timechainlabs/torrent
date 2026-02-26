@@ -28,7 +28,6 @@ import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/anacrolix/chansync"
 	"github.com/anacrolix/chansync/events"
-	"github.com/timechainlabs/dht/v2"
 	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2"
@@ -38,6 +37,7 @@ import (
 	"github.com/anacrolix/multiless"
 	"github.com/anacrolix/sync"
 	"github.com/pion/webrtc/v4"
+	"github.com/timechainlabs/dht/v2"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
@@ -1178,6 +1178,9 @@ func (t *Torrent) offsetRequest(off int64) (req Request, ok bool) {
 
 func (t *Torrent) writeChunk(piece int, begin int64, data []byte) (err error) {
 	n, err := t.piece(piece).Storage().WriteAt(data, begin)
+
+	println("Error happened here only")
+
 	if err == nil && n != len(data) {
 		err = io.ErrShortWrite
 	}
