@@ -42,6 +42,7 @@ func (me *LocalLtepProtocolMap) LookupId(id pp.ExtensionNumber) (name pp.Extensi
 	}
 	protocolIndex := int(id - 1)
 	if protocolIndex >= len(me.Index) {
+		err = fmt.Errorf("unexpected extended message ID: %v", id)
 		return
 	}
 	builtin = protocolIndex < me.NumBuiltin

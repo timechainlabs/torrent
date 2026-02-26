@@ -6,13 +6,13 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	"github.com/timechainlabs/torrent"
 	"github.com/timechainlabs/torrent/tracker"
+	"github.com/timechainlabs/torrent/types/infohash"
 )
 
 type scrapeCfg struct {
-	Tracker    string             `arg:"positional"`
-	InfoHashes []torrent.InfoHash `arity:"+" arg:"positional"`
+	Tracker    string       `arg:"positional"`
+	InfoHashes []infohash.T `arity:"+" arg:"positional"`
 }
 
 func scrape(flags scrapeCfg) error {

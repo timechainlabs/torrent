@@ -24,7 +24,8 @@ import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/anacrolix/chansync"
 	"github.com/anacrolix/chansync/events"
-	. "github.com/anacrolix/generics"
+	"github.com/timechainlabs/dht/v2"
+	"github.com/timechainlabs/dht/v2/krpc"
 	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/generics/heap"
 	"github.com/anacrolix/log"
@@ -33,20 +34,17 @@ import (
 	"github.com/anacrolix/missinggo/v2/panicif"
 	"github.com/anacrolix/missinggo/v2/pproffd"
 	"github.com/anacrolix/sync"
-	"github.com/cespare/xxhash"
-	"github.com/dustin/go-humanize"
-	gbtree "github.com/google/btree"
-	"github.com/pion/webrtc/v4"
-	"github.com/timechainlabs/dht/v2"
-	"github.com/timechainlabs/dht/v2/krpc"
 	"github.com/timechainlabs/torrent/internal/amortize"
 	"github.com/timechainlabs/torrent/internal/extracmp"
 	"github.com/timechainlabs/torrent/tracker"
 	"github.com/timechainlabs/torrent/webtorrent"
+	"github.com/cespare/xxhash"
+	"github.com/dustin/go-humanize"
+	gbtree "github.com/google/btree"
+	"github.com/pion/webrtc/v4"
 
 	"github.com/timechainlabs/torrent/bencode"
 	"github.com/timechainlabs/torrent/internal/check"
-	"github.com/timechainlabs/torrent/internal/limiter"
 	"github.com/timechainlabs/torrent/iplist"
 	"github.com/timechainlabs/torrent/metainfo"
 	"github.com/timechainlabs/torrent/mse"
@@ -110,7 +108,6 @@ type Client struct {
 
 	numWebSeedRequests map[webseedHostKeyHandle]int
 
-	activeAnnounceLimiter limiter.Instance
 	// TODO: Move this onto ClientConfig.
 	httpClient *http.Client
 
@@ -564,11 +561,6 @@ func (cl *Client) ipBlockRange(ip net.IP) (r iplist.Range, blocked bool) {
 	return cl.ipBlockList.Lookup(ip)
 }
 
-func (cl *Client) ipIsBlocked(ip net.IP) bool {
-	_, blocked := cl.ipBlockRange(ip)
-	return blocked
-}
-
 func (cl *Client) wantConns() bool {
 	if cl.config.AlwaysWantConns {
 		return true
@@ -868,7 +860,8 @@ func (cl *Client) dialAndCompleteHandshake(opts outgoingConnOpts) (c *PeerConn, 
 		if holepunchAddrErr == nil {
 			cl.lock()
 			if !opts.receivedHolepunchConnect {
-				g.MakeMapIfNilAndSet(&cl.undialableWithoutHolepunch, holepunchAddr, struct{}{})
+				g.MakeMapIfNil(&cl.undialableWithoutHolepunch)
+				g.MapInsert(cl.undialableWithoutHolepunch, holepunchAddr, struct{}{})
 			}
 			if !opts.skipHolepunchRendezvous {
 				opts.t.trySendHolepunchRendezvous(holepunchAddr)
@@ -881,7 +874,8 @@ func (cl *Client) dialAndCompleteHandshake(opts outgoingConnOpts) (c *PeerConn, 
 	if opts.receivedHolepunchConnect && holepunchAddrErr == nil {
 		cl.lock()
 		if g.MapContains(cl.undialableWithoutHolepunch, holepunchAddr) {
-			g.MakeMapIfNilAndSet(&cl.dialableOnlyAfterHolepunch, holepunchAddr, struct{}{})
+			g.MakeMapIfNil(&cl.dialableOnlyAfterHolepunch)
+			g.MapInsert(cl.dialableOnlyAfterHolepunch, holepunchAddr, struct{}{})
 		}
 		g.MakeMapIfNil(&cl.dialedSuccessfullyAfterHolepunchConnect)
 		g.MapInsert(cl.dialedSuccessfullyAfterHolepunchConnect, holepunchAddr, struct{}{})
@@ -1763,7 +1757,7 @@ func (cl *Client) newConnection(nc net.Conn, opts newConnectionOpts) (c *PeerCon
 	if opts.remoteAddr != nil {
 		netipAddrPort, err := netip.ParseAddrPort(opts.remoteAddr.String())
 		if err == nil {
-			c.bannableAddr = Some(netipAddrPort.Addr())
+			c.bannableAddr = g.Some(netipAddrPort.Addr())
 		}
 	}
 	c.legacyPeerImpl = c

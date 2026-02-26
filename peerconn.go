@@ -18,8 +18,7 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/anacrolix/chansync"
-	"github.com/anacrolix/generics"
-	. "github.com/anacrolix/generics"
+	g "github.com/anacrolix/generics"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/missinggo/v2/panicif"
@@ -41,12 +40,6 @@ type PeerStatus struct {
 	Id  PeerID
 	Ok  bool
 	Err string // see https://github.com/golang/go/issues/5161
-}
-
-type PeerState struct {
-	bytesRequested uint64
-	bytesThreshold uint64
-	bytesLeft      uint64
 }
 
 // Maintains the state of a BitTorrent-protocol based connection with a peer.
@@ -129,8 +122,6 @@ type PeerConn struct {
 	// Set true after we've added our ConnStats generated during handshake to other ConnStat
 	// instances as determined when the *Torrent became known.
 	reconciledHandshakeStats bool
-
-	peerState *PeerState
 }
 
 func (*PeerConn) allConnStatsImplField(stats *AllConnStats) *ConnStats {
@@ -328,7 +319,7 @@ func (me *PeerConn) deletePeerRequest(r Request) {
 }
 
 func (me *PeerConn) havePeerRequest(r Request) bool {
-	return MapContains(me.unreadPeerRequests, r) || MapContains(me.readyPeerRequests, r)
+	return g.MapContains(me.unreadPeerRequests, r) || g.MapContains(me.readyPeerRequests, r)
 }
 
 func (cn *PeerConn) choke(msg messageWriter) (more bool) {
@@ -632,12 +623,12 @@ func (c *PeerConn) reject(r Request) {
 	c.deletePeerRequest(r)
 }
 
-func (c *PeerConn) maximumPeerRequestChunkLength() (_ Option[int]) {
+func (c *PeerConn) maximumPeerRequestChunkLength() (_ g.Option[int]) {
 	uploadRateLimiter := c.t.cl.config.UploadRateLimiter
 	if uploadRateLimiter.Limit() == rate.Inf {
 		return
 	}
-	return Some(uploadRateLimiter.Burst())
+	return g.Some(uploadRateLimiter.Burst())
 }
 
 func (me *PeerConn) numPeerRequests() int {
@@ -693,7 +684,7 @@ func (c *PeerConn) onReadRequest(r Request, startFetch bool) error {
 		torrent.Add("bad requests received", 1)
 		return errors.New("chunk overflows piece")
 	}
-	MakeMapIfNilWithCap(&c.unreadPeerRequests, localClientReqq)
+	g.MakeMapIfNilWithCap(&c.unreadPeerRequests, localClientReqq)
 	c.unreadPeerRequests[r] = struct{}{}
 	if startFetch {
 		c.startPeerRequestServer()
@@ -771,11 +762,11 @@ func (me *PeerConn) deleteReadyPeerRequest(r Request) {
 func (c *PeerConn) servePeerRequest(r Request) {
 	defer func() {
 		// Prevent caller from stalling. It's either rejected or buffered.
-		panicif.True(MapContains(c.unreadPeerRequests, r))
+		panicif.True(g.MapContains(c.unreadPeerRequests, r))
 	}()
 	if !c.waitForDataAlloc(r.Length.Int()) {
 		// Might have been removed while unlocked.
-		if MapContains(c.unreadPeerRequests, r) {
+		if g.MapContains(c.unreadPeerRequests, r) {
 			c.useBestReject(r)
 		}
 		return
@@ -787,12 +778,12 @@ func (c *PeerConn) servePeerRequest(r Request) {
 		c.peerRequestDataReadFailed(err, r)
 		return
 	}
-	if !MapContains(c.unreadPeerRequests, r) {
+	if !g.MapContains(c.unreadPeerRequests, r) {
 		c.slogger.Debug("read data for peer request but no longer wanted", "request", r)
 		return
 	}
-	MustDelete(c.unreadPeerRequests, r)
-	MakeMapIfNil(&c.readyPeerRequests)
+	g.MustDelete(c.unreadPeerRequests, r)
+	g.MakeMapIfNil(&c.readyPeerRequests)
 	c.readyPeerRequests[r] = b
 	c.tickleWriter()
 }
@@ -924,7 +915,7 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			}
 			if !c.fastEnabled() {
 				c.deleteAllRequests("choked by non-fast PeerConn")
-			} else {
+			} else { //nolint:staticcheck // SA9003: intentionally empty, see comment below
 				// We don't decrement pending requests here, let's wait for the peer to either
 				// reject or satisfy the outstanding requests. Additionally, some peers may unchoke
 				// us and resume where they left off, we don't want to have piled on to those chunks
@@ -977,18 +968,6 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.Request:
 			r := newRequestFromMessage(&msg)
-			if c.cl.config.EnableSeedrush {
-				if c.peerState == nil {
-					c.peerState = new(PeerState)
-				}
-
-				c.peerState.bytesRequested += r.Length.Uint64()
-				if c.peerState.bytesRequested > c.peerState.bytesThreshold {
-					cl.config.SeedrushFunc(c)
-					c.peerState.bytesThreshold += (10 * 1024 * 1024)
-				}
-			}
-
 			err = c.onReadRequest(r, true)
 			if err != nil {
 				err = fmt.Errorf("on reading request %v: %w", r, err)
@@ -1248,7 +1227,7 @@ func (c *PeerConn) tickleWriter() {
 }
 
 func (c *PeerConn) sendChunk(r Request, msg func(pp.Message) bool) (more bool) {
-	b := MapMustGet(c.readyPeerRequests, r)
+	b := g.MapMustGet(c.readyPeerRequests, r)
 	panicif.NotEq(len(b), r.Length.Int())
 	c.deleteReadyPeerRequest(r)
 	c.lastChunkSent = time.Now()
@@ -1383,10 +1362,16 @@ func (c *PeerConn) addBuiltinLtepProtocols(pex bool) {
 	c.LocalLtepProtocolMap = &c.t.cl.defaultLocalLtepProtocolMap
 }
 
-func (pc *PeerConn) WriteExtendedMessage(extId pp.ExtensionNumber, payload []byte) error {
+func (pc *PeerConn) WriteExtendedMessage(extName pp.ExtensionName, payload []byte) error {
+	pc.locker().Lock()
+	defer pc.locker().Unlock()
+	id := pc.PeerExtensionIDs[extName]
+	if id == 0 {
+		return fmt.Errorf("peer does not support or has disabled extension %q", extName)
+	}
 	pc.write(pp.Message{
 		Type:            pp.Extended,
-		ExtendedID:      extId,
+		ExtendedID:      id,
 		ExtendedPayload: payload,
 	})
 	return nil
@@ -1450,11 +1435,11 @@ file:
 				ProofLayers: proofLayers,
 			}
 			hr := hashRequestFromMessage(msg)
-			if generics.MapContains(pc.sentHashRequests, hr) {
+			if g.MapContains(pc.sentHashRequests, hr) {
 				continue
 			}
 			pc.write(msg)
-			generics.MakeMapIfNil(&pc.sentHashRequests)
+			g.MakeMapIfNil(&pc.sentHashRequests)
 			pc.sentHashRequests[hr] = struct{}{}
 		}
 	}
@@ -1465,7 +1450,7 @@ func (pc *PeerConn) onReadHashes(msg *pp.Message) (err error) {
 	filePieceHashes := pc.receivedHashPieces[msg.PiecesRoot]
 	if filePieceHashes == nil {
 		filePieceHashes = make([][32]byte, file.numPieces())
-		generics.MakeMapIfNil(&pc.receivedHashPieces)
+		g.MakeMapIfNil(&pc.receivedHashPieces)
 		pc.receivedHashPieces[msg.PiecesRoot] = filePieceHashes
 	}
 	if msg.ProofLayers != 0 {
@@ -1563,17 +1548,6 @@ type hashRequest struct {
 	baseLayer, index, length, proofLayers pp.Integer
 }
 
-func (hr hashRequest) toMessage() pp.Message {
-	return pp.Message{
-		Type:        pp.HashRequest,
-		PiecesRoot:  hr.piecesRoot,
-		BaseLayer:   hr.baseLayer,
-		Index:       hr.index,
-		Length:      hr.length,
-		ProofLayers: hr.proofLayers,
-	}
-}
-
 func hashRequestFromMessage(m pp.Message) hashRequest {
 	return hashRequest{
 		piecesRoot:  m.PiecesRoot,
@@ -1666,9 +1640,9 @@ func (cn *PeerConn) statusFlags() (ret string) {
 }
 
 func (cn *PeerConn) iterContiguousPieceRequests(f func(piece pieceIndex, count int)) {
-	var last Option[pieceIndex]
+	var last g.Option[pieceIndex]
 	var count int
-	next := func(item Option[pieceIndex]) {
+	next := func(item g.Option[pieceIndex]) {
 		if item == last {
 			count++
 		} else {
@@ -1680,10 +1654,10 @@ func (cn *PeerConn) iterContiguousPieceRequests(f func(piece pieceIndex, count i
 		}
 	}
 	cn.requestState.Requests.Iterate(func(requestIndex requestStrategy.RequestIndex) bool {
-		next(Some(cn.t.pieceIndexOfRequestIndex(requestIndex)))
+		next(g.Some(cn.t.pieceIndexOfRequestIndex(requestIndex)))
 		return true
 	})
-	next(None[pieceIndex]())
+	next(g.None[pieceIndex]())
 }
 
 func (cn *PeerConn) peerImplWriteStatus(w io.Writer) {
