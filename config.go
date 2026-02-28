@@ -8,10 +8,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/timechainlabs/dht/v2"
-	"github.com/timechainlabs/dht/v2/krpc"
 	"github.com/anacrolix/log"
 	"github.com/anacrolix/missinggo/v2"
+	"github.com/timechainlabs/dht/v2"
+	"github.com/timechainlabs/dht/v2/krpc"
 
 	"github.com/pion/webrtc/v4"
 	"golang.org/x/time/rate"
@@ -63,8 +63,8 @@ type ClientConfig struct {
 	DataDir string `long:"data-dir" description:"directory to store downloaded torrent data"`
 	// The address to listen for new uTP and TCP BitTorrent protocol connections. DHT shares a UDP
 	// socket with uTP unless configured otherwise.
-	ListenHost              func(network string) string
-	ListenPort              int
+	ListenHost func(network string) string
+	ListenPort int
 	// cfg.NoDefaultPortForwarding aka cfg.DisableUpnp
 	NoDefaultPortForwarding bool
 	UpnpID                  string
@@ -92,6 +92,9 @@ type ClientConfig struct {
 	DownloadRateLimiter *rate.Limiter
 	// Maximum unverified bytes across all torrents. Not used if zero.
 	MaxUnverifiedBytes int64
+
+	EnableSeedrush bool
+	SeedrushFunc   func(*PeerConn)
 
 	// User-provided Client peer ID. If not present, one is generated automatically.
 	PeerID string

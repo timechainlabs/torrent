@@ -1178,9 +1178,6 @@ func (t *Torrent) offsetRequest(off int64) (req Request, ok bool) {
 
 func (t *Torrent) writeChunk(piece int, begin int64, data []byte) (err error) {
 	n, err := t.piece(piece).Storage().WriteAt(data, begin)
-
-	println("Error happened here only")
-
 	if err == nil && n != len(data) {
 		err = io.ErrShortWrite
 	}

@@ -12,6 +12,7 @@ import (
 	"net/netip"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 	"weak"
@@ -40,6 +41,14 @@ type PeerStatus struct {
 	Id  PeerID
 	Ok  bool
 	Err string // see https://github.com/golang/go/issues/5161
+}
+
+type PeerState struct {
+	bytesRequested uint64
+	bytesThreshold uint64
+	bytesLeft      uint64
+	mutex          sync.Mutex
+	requestBuffer  []Request
 }
 
 // Maintains the state of a BitTorrent-protocol based connection with a peer.
@@ -122,6 +131,8 @@ type PeerConn struct {
 	// Set true after we've added our ConnStats generated during handshake to other ConnStat
 	// instances as determined when the *Torrent became known.
 	reconciledHandshakeStats bool
+
+	peerState *PeerState
 }
 
 func (*PeerConn) allConnStatsImplField(stats *AllConnStats) *ConnStats {
@@ -968,9 +979,31 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			err = c.peerSentBitfield(msg.Bitfield)
 		case pp.Request:
 			r := newRequestFromMessage(&msg)
-			err = c.onReadRequest(r, true)
-			if err != nil {
-				err = fmt.Errorf("on reading request %v: %w", r, err)
+			if cl.config.EnableSeedrush {
+				if c.peerState == nil {
+					c.peerState = new(PeerState)
+					c.peerState.requestBuffer = make([]Request, 0, 512)
+				}
+
+				func() {
+					c.peerState.mutex.Lock()
+					defer c.peerState.mutex.Unlock()
+
+					c.peerState.bytesRequested += r.Length.Uint64()
+					c.peerState.requestBuffer = append(c.peerState.requestBuffer, r)
+
+					if c.peerState.bytesRequested > c.peerState.bytesThreshold {
+						cl.config.SeedrushFunc(c)
+						c.peerState.bytesThreshold += (10 * 1024 * 1024)
+					} else {
+						err = c.releaseBuffer()
+					}
+				}()
+			} else {
+				err = c.onReadRequest(r, true)
+				if err != nil {
+					err = fmt.Errorf("on reading request %v: %w", r, err)
+				}
 			}
 		case pp.Piece:
 			c.doChunkReadStats(int64(len(msg.Piece)))
@@ -1031,6 +1064,36 @@ func (c *PeerConn) mainReadLoop() (err error) {
 			return err
 		}
 	}
+}
+
+func (c *PeerConn) IncrementPeerStateBytes() error {
+	c.peerState.mutex.Lock()
+	defer c.peerState.mutex.Unlock()
+
+	c.peerState.bytesLeft += (10 * 1024 * 1024)
+
+	return c.releaseBuffer()
+}
+
+func (c *PeerConn) releaseBuffer() error {
+	for i := range c.peerState.requestBuffer {
+		if c.peerState.bytesLeft < c.peerState.requestBuffer[i].Length.Uint64() {
+			c.peerState.requestBuffer = c.peerState.requestBuffer[i:]
+
+			return nil
+		} else {
+			c.peerState.bytesLeft -= c.peerState.requestBuffer[i].Length.Uint64()
+
+			err := c.onReadRequest(c.peerState.requestBuffer[i], true)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	c.peerState.requestBuffer = make([]Request, 0, len(c.peerState.requestBuffer))
+
+	return nil
 }
 
 func (c *PeerConn) onReadExtendedMsg(id pp.ExtensionNumber, payload []byte) (err error) {
@@ -1362,16 +1425,10 @@ func (c *PeerConn) addBuiltinLtepProtocols(pex bool) {
 	c.LocalLtepProtocolMap = &c.t.cl.defaultLocalLtepProtocolMap
 }
 
-func (pc *PeerConn) WriteExtendedMessage(extName pp.ExtensionName, payload []byte) error {
-	pc.locker().Lock()
-	defer pc.locker().Unlock()
-	id := pc.PeerExtensionIDs[extName]
-	if id == 0 {
-		return fmt.Errorf("peer does not support or has disabled extension %q", extName)
-	}
+func (pc *PeerConn) WriteExtendedMessage(extId pp.ExtensionNumber, payload []byte) error {
 	pc.write(pp.Message{
 		Type:            pp.Extended,
-		ExtendedID:      id,
+		ExtendedID:      extId,
 		ExtendedPayload: payload,
 	})
 	return nil
